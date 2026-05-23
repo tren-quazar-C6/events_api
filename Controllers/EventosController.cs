@@ -63,7 +63,11 @@ public class EventosController : ControllerBase
                     ?? evento.Imagenes
                         .Select(imagen => imagen.RutaUrl)
                         .FirstOrDefault(),
-                evento.EventoAsientos.Count(asiento => asiento.Estado == "DISPONIBLE")))
+                evento.EventoAsientos.Count(asiento => asiento.Estado == "DISPONIBLE"),
+                evento.EventoAsientos
+                    .Where(asiento => asiento.Estado == "DISPONIBLE")
+                    .Select(asiento => (decimal?)asiento.Precio)
+                    .Min()))
             .ToListAsync(cancellationToken);
 
         return Ok(eventos);
@@ -97,10 +101,59 @@ public class EventosController : ControllerBase
                     .ToList(),
                 evento.EventoAsientos.Count(asiento => asiento.Estado == "DISPONIBLE"),
                 evento.EventoAsientos.Count(asiento => asiento.Estado == "RESERVADO"),
-                evento.EventoAsientos.Count(asiento => asiento.Estado == "VENDIDO")))
+                evento.EventoAsientos.Count(asiento => asiento.Estado == "VENDIDO"),
+                evento.EventoAsientos
+                    .Where(asiento => asiento.Estado == "DISPONIBLE")
+                    .Select(asiento => (decimal?)asiento.Precio)
+                    .Min()))
             .FirstOrDefaultAsync(cancellationToken);
 
         return evento is null ? NotFound() : Ok(evento);
+    }
+
+    [HttpGet("{id:int}/asientos")]
+    public async Task<ActionResult<IReadOnlyCollection<EventoAsientoDto>>> GetAsientosEvento(
+        int id,
+        [FromQuery] bool soloDisponibles = false,
+        CancellationToken cancellationToken = default)
+    {
+        var eventoExiste = await _db.Eventos
+            .AsNoTracking()
+            .AnyAsync(evento => evento.IdEvento == id && evento.Activo == true, cancellationToken);
+
+        if (!eventoExiste)
+        {
+            return NotFound();
+        }
+
+        var query = _db.EventoAsientos
+            .AsNoTracking()
+            .Where(eventoAsiento => eventoAsiento.IdEvento == id);
+
+        if (soloDisponibles)
+        {
+            query = query.Where(eventoAsiento => eventoAsiento.Estado == "DISPONIBLE");
+        }
+
+        var asientos = await query
+            .OrderBy(eventoAsiento => eventoAsiento.Precio)
+            .ThenBy(eventoAsiento => eventoAsiento.IdAsientoNavigation.IdZonaNavigation.NombreZona)
+            .ThenBy(eventoAsiento => eventoAsiento.IdAsientoNavigation.Fila)
+            .ThenBy(eventoAsiento => eventoAsiento.IdAsientoNavigation.Numero)
+            .Select(eventoAsiento => new EventoAsientoDto(
+                eventoAsiento.IdEventoAsiento,
+                eventoAsiento.IdAsiento,
+                eventoAsiento.IdAsientoNavigation.CodigoAsiento,
+                eventoAsiento.IdAsientoNavigation.Fila,
+                eventoAsiento.IdAsientoNavigation.Numero,
+                eventoAsiento.IdAsientoNavigation.IdZona,
+                eventoAsiento.IdAsientoNavigation.IdZonaNavigation.NombreZona,
+                eventoAsiento.IdAsientoNavigation.IdZonaNavigation.ColorHex,
+                eventoAsiento.Precio,
+                eventoAsiento.Estado))
+            .ToListAsync(cancellationToken);
+
+        return Ok(asientos);
     }
 
     [HttpGet("/api/tipos-evento")]

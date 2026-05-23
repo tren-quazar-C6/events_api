@@ -11,4 +11,5 @@ public record EventoResumenDto(
     int IdTipoEvento,
     string TipoEvento,
     string? ImagenPrincipal,
-    int AsientosDisponibles);
+    int AsientosDisponibles,
+    decimal? PrecioDesde);

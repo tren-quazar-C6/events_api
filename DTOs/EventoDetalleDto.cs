@@ -14,4 +14,5 @@ public record EventoDetalleDto(
     IReadOnlyCollection<ImagenEventoDto> Imagenes,
     int AsientosDisponibles,
     int AsientosReservados,
-    int AsientosVendidos);
+    int AsientosVendidos,
+    decimal? PrecioDesde);
