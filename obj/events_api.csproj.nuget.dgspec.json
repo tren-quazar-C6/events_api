@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/home/csharp/Documentos/Csharp/events_api/events_api.csproj": {}
+    "/Users/veronicamartinez/Documents/RIWI/C Sharp/events_quasar/events_api/events_api.csproj": {}
   },
   "projects": {
-    "/home/csharp/Documentos/Csharp/events_api/events_api.csproj": {
+    "/Users/veronicamartinez/Documents/RIWI/C Sharp/events_quasar/events_api/events_api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/csharp/Documentos/Csharp/events_api/events_api.csproj",
+        "projectUniqueName": "/Users/veronicamartinez/Documents/RIWI/C Sharp/events_quasar/events_api/events_api.csproj",
         "projectName": "events_api",
-        "projectPath": "/home/csharp/Documentos/Csharp/events_api/events_api.csproj",
-        "packagesPath": "/home/csharp/.nuget/packages/",
-        "outputPath": "/home/csharp/Documentos/Csharp/events_api/obj/",
+        "projectPath": "/Users/veronicamartinez/Documents/RIWI/C Sharp/events_quasar/events_api/events_api.csproj",
+        "packagesPath": "/Users/veronicamartinez/.nuget/packages/",
+        "outputPath": "/Users/veronicamartinez/Documents/RIWI/C Sharp/events_quasar/events_api/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/csharp/.nuget/NuGet/NuGet.Config"
+          "/Users/veronicamartinez/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -24,7 +24,6 @@
         },
         "frameworks": {
           "net10.0": {
-            "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {}
           }
@@ -39,11 +38,10 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
-          "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
             "Microsoft.AspNetCore.OpenApi": {
@@ -90,7 +88,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/home/csharp/dotnet/sdk/10.0.300/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
