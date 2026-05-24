@@ -1,10 +1,12 @@
 using events_api.Data;
+using events_api.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<MetricsService>();
 
 builder.Services.AddCors(options =>
 {
