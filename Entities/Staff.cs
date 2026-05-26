@@ -29,7 +29,5 @@ public partial class Staff
 
     public virtual ICollection<Scan> Scans { get; set; } = new List<Scan>();
 
-    public virtual ICollection<StaffPermiso> StaffPermisos { get; set; } = new List<StaffPermiso>();
-
     public virtual ICollection<Venta> Venta { get; set; } = new List<Venta>();
 }

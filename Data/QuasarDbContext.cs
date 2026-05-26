@@ -40,8 +40,6 @@ public partial class QuasarDbContext : DbContext
 
     public virtual DbSet<Staff> Staff { get; set; }
 
-    public virtual DbSet<StaffPermiso> StaffPermisos { get; set; }
-
     public virtual DbSet<Ticket> Tickets { get; set; }
 
     public virtual DbSet<TipoEvento> TipoEventos { get; set; }
@@ -528,33 +526,6 @@ public partial class QuasarDbContext : DbContext
                 .HasForeignKey(d => d.IdRolStaff)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("STAFF_ibfk_1");
-        });
-
-        modelBuilder.Entity<StaffPermiso>(entity =>
-        {
-            entity.HasKey(e => e.IdPermiso).HasName("PRIMARY");
-
-            entity.ToTable("STAFF_PERMISO");
-
-            entity.HasIndex(e => new { e.IdStaff, e.Portal }, "id_staff").IsUnique();
-
-            entity.Property(e => e.IdPermiso).HasColumnName("id_permiso");
-            entity.Property(e => e.Activo)
-                .HasDefaultValueSql("'1'")
-                .HasColumnName("activo");
-            entity.Property(e => e.FechaAsignacion)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("datetime")
-                .HasColumnName("fecha_asignacion");
-            entity.Property(e => e.IdStaff).HasColumnName("id_staff");
-            entity.Property(e => e.Portal)
-                .HasColumnType("enum('ADMIN','TICKETS','ACCESS')")
-                .HasColumnName("portal");
-
-            entity.HasOne(d => d.IdStaffNavigation).WithMany(p => p.StaffPermisos)
-                .HasForeignKey(d => d.IdStaff)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("STAFF_PERMISO_ibfk_1");
         });
 
         modelBuilder.Entity<Ticket>(entity =>
