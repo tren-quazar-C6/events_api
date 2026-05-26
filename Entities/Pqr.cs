@@ -15,17 +15,15 @@ public partial class Pqr
 
     public string Asunto { get; set; } = null!;
 
-    public string Mensaje { get; set; } = null!;
-
     public string? Estado { get; set; }
-
-    public string? Respuesta { get; set; }
 
     public DateTime? FechaCreacion { get; set; }
 
-    public DateTime? FechaRespuesta { get; set; }
+    public DateTime? FechaUltimaRespuesta { get; set; }
 
     public virtual Staff? AsignadoStaffNavigation { get; set; }
 
     public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
+
+    public virtual ICollection<PqrsMensaje> PqrsMensajes { get; set; } = new List<PqrsMensaje>();
 }

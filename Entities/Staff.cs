@@ -19,6 +19,8 @@ public partial class Staff
 
     public DateTime? FechaRegistro { get; set; }
 
+    public virtual ICollection<Auditorium> Auditoria { get; set; } = new List<Auditorium>();
+
     public virtual ICollection<Evento> Eventos { get; set; } = new List<Evento>();
 
     public virtual RolStaff IdRolStaffNavigation { get; set; } = null!;
@@ -26,6 +28,8 @@ public partial class Staff
     public virtual ICollection<Pqr> Pqrs { get; set; } = new List<Pqr>();
 
     public virtual ICollection<Scan> Scans { get; set; } = new List<Scan>();
+
+    public virtual ICollection<StaffPermiso> StaffPermisos { get; set; } = new List<StaffPermiso>();
 
     public virtual ICollection<Venta> Venta { get; set; } = new List<Venta>();
 }

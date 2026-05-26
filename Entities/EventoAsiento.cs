@@ -11,8 +11,6 @@ public partial class EventoAsiento
 
     public int IdAsiento { get; set; }
 
-    public decimal Precio { get; set; }
-
     public string? Estado { get; set; }
 
     public DateTime? FechaReserva { get; set; }
