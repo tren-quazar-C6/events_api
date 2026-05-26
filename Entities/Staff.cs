@@ -19,6 +19,8 @@ public partial class Staff
 
     public DateTime? FechaRegistro { get; set; }
 
+    public virtual ICollection<Auditorium> Auditoria { get; set; } = new List<Auditorium>();
+
     public virtual ICollection<Evento> Eventos { get; set; } = new List<Evento>();
 
     public virtual RolStaff IdRolStaffNavigation { get; set; } = null!;

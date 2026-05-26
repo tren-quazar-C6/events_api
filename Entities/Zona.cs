@@ -14,4 +14,6 @@ public partial class Zona
     public bool? Activo { get; set; }
 
     public virtual ICollection<Asiento> Asientos { get; set; } = new List<Asiento>();
+
+    public virtual ICollection<EventoZona> EventoZonas { get; set; } = new List<EventoZona>();
 }

@@ -13,5 +13,9 @@ public partial class Imagene
 
     public bool? Principal { get; set; }
 
+    public int? Orden { get; set; }
+
+    public bool? Activo { get; set; }
+
     public virtual Evento IdEventoNavigation { get; set; } = null!;
 }

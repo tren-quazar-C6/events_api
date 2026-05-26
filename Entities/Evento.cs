@@ -37,9 +37,13 @@ public partial class Evento
 
     public virtual ICollection<EventoAsiento> EventoAsientos { get; set; } = new List<EventoAsiento>();
 
+    public virtual ICollection<EventoZona> EventoZonas { get; set; } = new List<EventoZona>();
+
     public virtual ICollection<Favorito> Favoritos { get; set; } = new List<Favorito>();
 
     public virtual TipoEvento IdTipoEventoNavigation { get; set; } = null!;
 
     public virtual ICollection<Imagene> Imagenes { get; set; } = new List<Imagene>();
+
+    public virtual ICollection<Notificacione> Notificaciones { get; set; } = new List<Notificacione>();
 }

@@ -13,8 +13,6 @@ public partial class Asiento
 
     public int Numero { get; set; }
 
-    public string CodigoAsiento { get; set; } = null!;
-
     public int PosX { get; set; }
 
     public int PosY { get; set; }

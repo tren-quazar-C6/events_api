@@ -17,7 +17,11 @@ public partial class Ticket
 
     public string QrToken { get; set; } = null!;
 
+    public decimal PrecioPagado { get; set; }
+
     public DateTime? FechaGeneracion { get; set; }
+
+    public DateTime? FechaImpresion { get; set; }
 
     public virtual EstadoTicket IdEstadoTicketNavigation { get; set; } = null!;
 

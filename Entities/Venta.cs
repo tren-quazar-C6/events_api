@@ -23,12 +23,6 @@ public partial class Venta
 
     public string? ReferenciaInterna { get; set; }
 
-    public string? ReferenciaWompi { get; set; }
-
-    public string? IdTransaccionWompi { get; set; }
-
-    public string? JsonRespuesta { get; set; }
-
     public DateTime? FechaPago { get; set; }
 
     public DateTime? FechaVenta { get; set; }
