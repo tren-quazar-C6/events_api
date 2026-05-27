@@ -3,23 +3,23 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class Asiento
+public partial class ASIENTO
 {
-    public int IdAsiento { get; set; }
+    public int id_asiento { get; set; }
 
-    public int IdZona { get; set; }
+    public int id_zona { get; set; }
 
-    public string Fila { get; set; } = null!;
+    public string fila { get; set; } = null!;
 
-    public int Numero { get; set; }
+    public int numero { get; set; }
 
-    public int PosX { get; set; }
+    public int pos_x { get; set; }
 
-    public int PosY { get; set; }
+    public int pos_y { get; set; }
 
-    public bool? Activo { get; set; }
+    public bool? activo { get; set; }
 
-    public virtual ICollection<EventoAsiento> EventoAsientos { get; set; } = new List<EventoAsiento>();
+    public virtual ICollection<EVENTO_ASIENTO> EVENTO_ASIENTOs { get; set; } = new List<EVENTO_ASIENTO>();
 
-    public virtual Zona IdZonaNavigation { get; set; } = null!;
+    public virtual ZONA id_zonaNavigation { get; set; } = null!;
 }

@@ -3,21 +3,21 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class Auditorium
+public partial class AUDITORIum
 {
-    public int IdAuditoria { get; set; }
+    public int id_auditoria { get; set; }
 
-    public int IdStaff { get; set; }
+    public int id_staff { get; set; }
 
-    public string Accion { get; set; } = null!;
+    public string accion { get; set; } = null!;
 
-    public string TablaAfectada { get; set; } = null!;
+    public string tabla_afectada { get; set; } = null!;
 
-    public int IdRegistroAfectado { get; set; }
+    public int id_registro_afectado { get; set; }
 
-    public string? Detalle { get; set; }
+    public string? detalle { get; set; }
 
-    public DateTime? Fecha { get; set; }
+    public DateTime? fecha { get; set; }
 
-    public virtual Staff IdStaffNavigation { get; set; } = null!;
+    public virtual STAFF id_staffNavigation { get; set; } = null!;
 }

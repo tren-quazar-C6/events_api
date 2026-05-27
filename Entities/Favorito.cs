@@ -3,17 +3,17 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class Favorito
+public partial class FAVORITO
 {
-    public int IdFavorito { get; set; }
+    public int id_favorito { get; set; }
 
-    public int IdUsuario { get; set; }
+    public int id_usuario { get; set; }
 
-    public int IdEvento { get; set; }
+    public int id_evento { get; set; }
 
-    public DateTime? FechaAgregado { get; set; }
+    public DateTime? fecha_agregado { get; set; }
 
-    public virtual Evento IdEventoNavigation { get; set; } = null!;
+    public virtual EVENTO id_eventoNavigation { get; set; } = null!;
 
-    public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
+    public virtual USUARIO id_usuarioNavigation { get; set; } = null!;
 }

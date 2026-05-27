@@ -1,15 +1,12 @@
 using System.Globalization;
 using events_api.Data;
-using events_api.DTOs;
+using events_api.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace events_api.Services;
 
 public class MetricsService
 {
-    private const string ApprovedPaymentStatus = "APPROVED";
-    private const string ValidScanResult = "VALIDO";
-
     private readonly QuasarDbContext _db;
 
     public MetricsService(QuasarDbContext db)
@@ -22,11 +19,12 @@ public class MetricsService
         DateTime hasta,
         CancellationToken cancellationToken = default)
     {
-        return await _db.Ventas
+        return await _db.VENTAs
             .AsNoTracking()
-            .Where(venta => venta.EstadoPago == ApprovedPaymentStatus)
-            .Where(venta => venta.FechaVenta >= desde && venta.FechaVenta <= hasta)
-            .SumAsync(venta => venta.Total, cancellationToken);
+            .Where(venta => venta.estado_pago == "APPROVED"
+                && venta.fecha_venta >= desde
+                && venta.fecha_venta <= hasta)
+            .SumAsync(venta => venta.total, cancellationToken);
     }
 
     public async Task<int> GetTicketsSoldAsync(
@@ -34,71 +32,52 @@ public class MetricsService
         DateTime hasta,
         CancellationToken cancellationToken = default)
     {
-        return await _db.Tickets
+        return await _db.TICKETs
             .AsNoTracking()
-            .Where(ticket => ticket.IdVentaNavigation.EstadoPago == ApprovedPaymentStatus)
-            .Where(ticket => ticket.FechaGeneracion >= desde && ticket.FechaGeneracion <= hasta)
+            .Where(ticket => ticket.id_ventaNavigation.estado_pago == "APPROVED"
+                && ticket.id_ventaNavigation.fecha_venta >= desde
+                && ticket.id_ventaNavigation.fecha_venta <= hasta)
             .CountAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<WeeklySalesDto>> GetWeeklySalesAsync(
+    public async Task<IReadOnlyCollection<(int week, decimal revenue)>> GetWeeklySalesAsync(
         DateTime desde,
         DateTime hasta,
         CancellationToken cancellationToken = default)
     {
-        var ventas = await _db.Ventas
+        var sales = await _db.VENTAs
             .AsNoTracking()
-            .Where(venta => venta.EstadoPago == ApprovedPaymentStatus)
-            .Where(venta => venta.FechaVenta >= desde && venta.FechaVenta <= hasta)
-            .Select(venta => new
-            {
-                FechaVenta = venta.FechaVenta!.Value,
-                venta.Total
-            })
+            .Where(venta => venta.estado_pago == "APPROVED"
+                && venta.fecha_venta >= desde
+                && venta.fecha_venta <= hasta)
+            .Select(venta => new { venta.fecha_venta, venta.total })
             .ToListAsync(cancellationToken);
 
-        return ventas
-            .GroupBy(venta => new
-            {
-                Anio = ISOWeek.GetYear(venta.FechaVenta),
-                Semana = ISOWeek.GetWeekOfYear(venta.FechaVenta)
-            })
-            .Select(grupo => new WeeklySalesDto(
-                grupo.Key.Anio,
-                grupo.Key.Semana,
-                grupo.Sum(venta => venta.Total),
-                grupo.Count()))
-            .OrderBy(venta => venta.Anio)
-            .ThenBy(venta => venta.Semana)
+        var weeklySales = sales
+            .GroupBy(s => ISOWeek.GetWeekOfYear(DateOnly.FromDateTime(s.fecha_venta.Value)))
+            .Select(g => (week: g.Key, revenue: g.Sum(s => s.total)))
+            .OrderBy(ws => ws.week)
             .ToList();
+
+        return weeklySales;
     }
 
-    public async Task<AttendanceRateDto> GetAttendanceRateAsync(
+    public async Task<decimal> GetAttendanceRateAsync(
         int idEvento,
         CancellationToken cancellationToken = default)
     {
-        var totalTickets = await _db.Tickets
+        var validScans = await _db.SCANs
             .AsNoTracking()
-            .Where(ticket => ticket.IdEventoAsientoNavigation.IdEvento == idEvento)
-            .CountAsync(cancellationToken);
+            .CountAsync(scan => scan.id_ticketNavigation.id_evento_asientoNavigation.id_evento == idEvento
+                && scan.resultado == "VALIDO", cancellationToken);
+
+        var totalTickets = await _db.TICKETs
+            .AsNoTracking()
+            .CountAsync(ticket => ticket.id_evento_asientoNavigation.id_evento == idEvento, cancellationToken);
 
         if (totalTickets == 0)
-        {
-            return new AttendanceRateDto(idEvento, 0, 0, 0);
-        }
+            return 0;
 
-        var asistentes = await _db.Scans
-            .AsNoTracking()
-            .Where(scan => scan.Resultado == ValidScanResult)
-            .Where(scan => scan.IdTicketNavigation.IdEventoAsientoNavigation.IdEvento == idEvento)
-            .Select(scan => scan.IdTicket)
-            .Distinct()
-            .CountAsync(cancellationToken);
-
-        return new AttendanceRateDto(
-            idEvento,
-            totalTickets,
-            asistentes,
-            (double)asistentes / totalTickets);
+        return (decimal)validScans / totalTickets * 100;
     }
 }
