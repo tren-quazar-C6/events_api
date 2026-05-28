@@ -2498,19 +2498,19 @@
     ]
   },
   "packageFolders": {
-    "/Users/veronicamartinez/.nuget/packages/": {}
+    "C:\\Users\\User\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/veronicamartinez/Documents/RIWI/C Sharp/events_quasar/events_api/events_api.csproj",
+      "projectUniqueName": "C:\\Users\\User\\Documents\\quasar\\events_api\\events_api.csproj",
       "projectName": "events_api",
-      "projectPath": "/Users/veronicamartinez/Documents/RIWI/C Sharp/events_quasar/events_api/events_api.csproj",
-      "packagesPath": "/Users/veronicamartinez/.nuget/packages/",
-      "outputPath": "/Users/veronicamartinez/Documents/RIWI/C Sharp/events_quasar/events_api/obj/",
+      "projectPath": "C:\\Users\\User\\Documents\\quasar\\events_api\\events_api.csproj",
+      "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\User\\Documents\\quasar\\events_api\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/veronicamartinez/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
@@ -2588,7 +2588,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
