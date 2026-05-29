@@ -50,11 +50,12 @@ public class MetricsService
             .Where(venta => venta.estado_pago == "APPROVED"
                 && venta.fecha_venta >= desde
                 && venta.fecha_venta <= hasta)
-            .Select(venta => new { venta.fecha_venta, venta.total })
+            .Where(venta => venta.fecha_venta.HasValue)
+            .Select(venta => new { fecha_venta = venta.fecha_venta!.Value, venta.total })
             .ToListAsync(cancellationToken);
 
         var weeklySales = sales
-            .GroupBy(s => ISOWeek.GetWeekOfYear(DateOnly.FromDateTime(s.fecha_venta.Value)))
+            .GroupBy(s => ISOWeek.GetWeekOfYear(DateOnly.FromDateTime(s.fecha_venta)))
             .Select(g => (week: g.Key, revenue: g.Sum(s => s.total)))
             .OrderBy(ws => ws.week)
             .ToList();

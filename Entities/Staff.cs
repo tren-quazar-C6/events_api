@@ -27,6 +27,8 @@ public partial class STAFF
 
     public virtual ICollection<SCAN> SCANs { get; set; } = new List<SCAN>();
 
+    public virtual ICollection<SCAN_ALERT> SCAN_ALERTs { get; set; } = new List<SCAN_ALERT>();
+
     public virtual ICollection<VENTA> VENTAs { get; set; } = new List<VENTA>();
 
     public virtual ROL_STAFF id_rol_staffNavigation { get; set; } = null!;

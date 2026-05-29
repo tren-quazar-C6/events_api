@@ -25,6 +25,8 @@ public partial class TICKET
 
     public virtual ICollection<SCAN> SCANs { get; set; } = new List<SCAN>();
 
+    public virtual ICollection<SCAN_ALERT> SCAN_ALERTs { get; set; } = new List<SCAN_ALERT>();
+
     public virtual ESTADO_TICKET id_estado_ticketNavigation { get; set; } = null!;
 
     public virtual EVENTO_ASIENTO id_evento_asientoNavigation { get; set; } = null!;

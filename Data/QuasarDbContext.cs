@@ -38,6 +38,8 @@ public partial class QuasarDbContext : DbContext
 
     public virtual DbSet<SCAN> SCANs { get; set; }
 
+    public virtual DbSet<SCAN_ALERT> SCAN_ALERTs { get; set; }
+
     public virtual DbSet<STAFF> STAFF { get; set; }
 
     public virtual DbSet<TICKET> TICKETs { get; set; }
@@ -360,6 +362,7 @@ public partial class QuasarDbContext : DbContext
             entity.Property(e => e.fecha_scan)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("datetime");
+            entity.Property(e => e.dispositivo).HasMaxLength(120);
             entity.Property(e => e.observacion).HasColumnType("text");
             entity.Property(e => e.resultado).HasColumnType("enum('VALIDO','DUPLICADO','INVALIDO','FALSO')");
 
@@ -372,6 +375,40 @@ public partial class QuasarDbContext : DbContext
                 .HasForeignKey(d => d.id_ticket)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("SCAN_ibfk_1");
+        });
+
+        modelBuilder.Entity<SCAN_ALERT>(entity =>
+        {
+            entity.HasKey(e => e.id_scan_alert).HasName("PRIMARY");
+
+            entity.ToTable("SCAN_ALERTS");
+
+            entity.HasIndex(e => e.id_scan, "id_scan");
+            entity.HasIndex(e => e.id_ticket, "id_ticket");
+            entity.HasIndex(e => e.id_staff, "id_staff");
+            entity.HasIndex(e => e.fecha_alerta, "idx_scan_alert_fecha");
+            entity.HasIndex(e => e.tipo_alerta, "idx_scan_alert_tipo");
+
+            entity.Property(e => e.detalle).HasColumnType("text");
+            entity.Property(e => e.dispositivo).HasMaxLength(120);
+            entity.Property(e => e.fecha_alerta)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime");
+            entity.Property(e => e.payload_json).HasColumnType("json");
+            entity.Property(e => e.qr_token).HasMaxLength(500);
+            entity.Property(e => e.tipo_alerta).HasMaxLength(60);
+
+            entity.HasOne(d => d.id_scanNavigation).WithMany(p => p.SCAN_ALERTs)
+                .HasForeignKey(d => d.id_scan)
+                .HasConstraintName("SCAN_ALERTS_ibfk_1");
+
+            entity.HasOne(d => d.id_ticketNavigation).WithMany(p => p.SCAN_ALERTs)
+                .HasForeignKey(d => d.id_ticket)
+                .HasConstraintName("SCAN_ALERTS_ibfk_2");
+
+            entity.HasOne(d => d.id_staffNavigation).WithMany(p => p.SCAN_ALERTs)
+                .HasForeignKey(d => d.id_staff)
+                .HasConstraintName("SCAN_ALERTS_ibfk_3");
         });
 
         modelBuilder.Entity<STAFF>(entity =>

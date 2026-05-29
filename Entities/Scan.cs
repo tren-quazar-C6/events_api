@@ -17,6 +17,10 @@ public partial class SCAN
 
     public string? observacion { get; set; }
 
+    public string? dispositivo { get; set; }
+
+    public virtual ICollection<SCAN_ALERT> SCAN_ALERTs { get; set; } = new List<SCAN_ALERT>();
+
     public virtual STAFF id_staffNavigation { get; set; } = null!;
 
     public virtual TICKET id_ticketNavigation { get; set; } = null!;
