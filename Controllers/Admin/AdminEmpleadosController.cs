@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 
 namespace events_api.Controllers.Admin;
 
@@ -22,6 +23,7 @@ namespace events_api.Controllers.Admin;
 ///
 /// TODO: agregar [Authorize(Roles = "admin")] cuando esté el JWT
 /// </summary>
+[Authorize]
 [ApiController]
 [Route("api/admin/empleados")]
 public class AdminEmpleadosController : ControllerBase
@@ -36,12 +38,7 @@ public class AdminEmpleadosController : ControllerBase
     // ============================================================
     // GET /api/admin/empleados
     // ============================================================
-
-    /// <summary>
-    /// Lista todos los empleados.
-    /// Filtra por rol o por nombre/email con el parámetro busqueda.
-    /// Por defecto solo muestra activos, con soloActivos=false muestra todos.
-    /// </summary>
+    
     [HttpGet]
     public async Task<ActionResult<ServiceResponse<IReadOnlyCollection<EmpleadoResumenDto>>>> GetEmpleados(
         [FromQuery] int? id_rol_staff,
@@ -78,11 +75,7 @@ public class AdminEmpleadosController : ControllerBase
     // ============================================================
     // GET /api/admin/empleados/{id}
     // ============================================================
-
-    /// <summary>
-    /// Detalle de un empleado por ID.
-    /// Nunca devuelve el password_hash.
-    /// </summary>
+    
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ServiceResponse<EmpleadoDetalleDto>>> GetEmpleado(
         int id,
@@ -109,16 +102,7 @@ public class AdminEmpleadosController : ControllerBase
     // ============================================================
     // POST /api/admin/empleados
     // ============================================================
-
-    /// <summary>
-    /// Crea un empleado nuevo.
-    ///
-    /// El password se hashea con SHA-256 antes de guardarse.
-    /// Cuando implementemos JWT, cambiar a BCrypt o Argon2.
-    ///
-    /// Valida que el email no esté duplicado.
-    /// Valida que el rol exista y esté activo.
-    /// </summary>
+    
     [HttpPost]
     public async Task<ActionResult<ServiceResponse<EmpleadoDetalleDto>>> CreateEmpleado(
         [FromBody] CreateEmpleadoRequest request,
@@ -178,12 +162,6 @@ public class AdminEmpleadosController : ControllerBase
     // PUT /api/admin/empleados/{id}
     // ============================================================
 
-    /// <summary>
-    /// Edita un empleado.
-    /// Solo actualiza los campos que llegan con valor.
-    /// Si password viene, se hashea y actualiza.
-    /// Si password no viene, el password actual no se toca.
-    /// </summary>
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ServiceResponse<object>>> UpdateEmpleado(
         int id,
@@ -234,12 +212,6 @@ public class AdminEmpleadosController : ControllerBase
     // DELETE /api/admin/empleados/{id}
     // ============================================================
 
-    /// <summary>
-    /// Soft delete: pone activo = false.
-    /// No borra el registro para preservar historial de eventos y ventas.
-    /// No permite desactivar al propio empleado autenticado.
-    /// (La validación del "propio empleado" se hará cuando haya JWT)
-    /// </summary>
     [HttpDelete("{id:int}")]
     public async Task<ActionResult<ServiceResponse<object>>> DeleteEmpleado(
         int id,
@@ -264,10 +236,6 @@ public class AdminEmpleadosController : ControllerBase
     // GET /api/admin/roles
     // ============================================================
 
-    /// <summary>
-    /// Lista todos los roles disponibles.
-    /// Se usa para llenar el dropdown al crear/editar un empleado.
-    /// </summary>
     [HttpGet("/api/admin/roles")]
     public async Task<ActionResult<ServiceResponse<IReadOnlyCollection<RolStaffDto>>>> GetRoles(
         CancellationToken cancellationToken = default)
@@ -288,14 +256,9 @@ public class AdminEmpleadosController : ControllerBase
     // ============================================================
     // MÉTODOS PRIVADOS
     // ============================================================
-
-    /// <summary>
+    
     /// Hashea un password con SHA-256.
-    ///
-    /// IMPORTANTE: SHA-256 es suficiente para el proyecto académico.
-    /// En producción real usar BCrypt o Argon2 que incluyen salt automático
-    /// y son resistentes a ataques de fuerza bruta.
-    /// </summary>
+    
     private static string HashPassword(string password)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));

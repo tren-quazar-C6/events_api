@@ -5,9 +5,11 @@ using events_api.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 
 namespace events_api.Controllers.Admin;
 
+[Authorize]
 [ApiController]
 [Route("api/admin/eventos")]
 public class AdminEventosController : ControllerBase
