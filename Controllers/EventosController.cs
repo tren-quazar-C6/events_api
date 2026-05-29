@@ -1,5 +1,6 @@
 using events_api.Data;
 using events_api.DTOs;
+using events_api.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,57 +24,50 @@ public class EventosController : ControllerBase
         [FromQuery] bool soloProximos = false,
         CancellationToken cancellationToken = default)
     {
-        var query = _db.Eventos
+        var query = _db.EVENTOs
             .AsNoTracking()
-            .Where(evento => evento.Activo == true && evento.Publicado == true);
+            .Where(evento => evento.activo == true);
 
         if (tipoEventoId is not null)
         {
-            query = query.Where(evento => evento.IdTipoEvento == tipoEventoId);
+            query = query.Where(evento => evento.id_tipo_evento == tipoEventoId);
         }
 
         if (!string.IsNullOrWhiteSpace(busqueda))
         {
             query = query.Where(evento =>
-                evento.NombreEvento.Contains(busqueda)
-                || (evento.Descripcion != null && evento.Descripcion.Contains(busqueda)));
+                evento.nombre_evento.Contains(busqueda)
+                || (evento.descripcion != null && evento.descripcion.Contains(busqueda)));
         }
 
         if (soloProximos)
         {
-            query = query.Where(evento => evento.FechaEvento >= DateTime.Now);
+            query = query.Where(evento => evento.fecha_evento >= DateTime.Now);
         }
 
         var eventos = await query
-            .OrderBy(evento => evento.FechaEvento)
+            .OrderBy(evento => evento.fecha_evento)
             .Select(evento => new EventoResumenDto(
-                evento.IdEvento,
-                evento.NombreEvento,
-                evento.Descripcion,
-                evento.FechaEvento,
-                evento.FechaInicioVentas,
-                evento.FechaFinVentas,
-                evento.CapacidadTotal,
-                evento.IdTipoEvento,
-                evento.IdTipoEventoNavigation.NombreTipo,
-                // Imagen principal primero, si no hay principal tomar la primera activa
-                evento.Imagenes
-                    .Where(imagen => imagen.Principal == true && imagen.Activo == true)
-                    .OrderBy(imagen => imagen.Orden)
-                    .Select(imagen => imagen.RutaUrl)
+                evento.id_evento,
+                evento.nombre_evento,
+                evento.descripcion,
+                evento.fecha_evento,
+                evento.fecha_inicio_ventas,
+                evento.fecha_fin_ventas,
+                evento.capacidad_total,
+                evento.id_tipo_evento,
+                evento.id_tipo_eventoNavigation.nombre_tipo,
+                evento.IMAGENEs
+                    .Where(imagen => imagen.principal == true)
+                    .Select(imagen => imagen.ruta_url)
                     .FirstOrDefault()
-                    ?? evento.Imagenes
-                        .Where(imagen => imagen.Activo == true)
-                        .OrderBy(imagen => imagen.Orden)
-                        .Select(imagen => imagen.RutaUrl)
+                    ?? evento.IMAGENEs
+                        .Select(imagen => imagen.ruta_url)
                         .FirstOrDefault(),
-                // AsientosDisponibles contando desde EVENTO_ASIENTO
-                evento.EventoAsientos.Count(ea => ea.Estado == "DISPONIBLE"),
-                // PrecioDesde: el precio más bajo entre las zonas activas del evento
-                // El precio ya no está en EVENTO_ASIENTO sino en EVENTO_ZONA
-                evento.EventoZonas
-                    .Where(ez => ez.Activo == true)
-                    .Select(ez => (decimal?)ez.Precio)
+                evento.EVENTO_ASIENTOs.Count(ea => ea.estado == "DISPONIBLE"),
+                evento.EVENTO_ZONAs
+                    .Where(ez => ez.activo == true)
+                    .Select(ez => (decimal?)ez.precio)
                     .Min()))
             .ToListAsync(cancellationToken);
 
@@ -85,38 +79,33 @@ public class EventosController : ControllerBase
         int id,
         CancellationToken cancellationToken = default)
     {
-        var evento = await _db.Eventos
+        var evento = await _db.EVENTOs
             .AsNoTracking()
-            .Where(evento => evento.IdEvento == id
-                && evento.Activo == true
-                && evento.Publicado == true)
+            .Where(evento => evento.id_evento == id && evento.activo == true)
             .Select(evento => new EventoDetalleDto(
-                evento.IdEvento,
-                evento.NombreEvento,
-                evento.Descripcion,
-                evento.FechaEvento,
-                evento.FechaInicioVentas,
-                evento.FechaFinVentas,
-                evento.FechaCreacion,
-                evento.CapacidadTotal,
-                evento.IdTipoEvento,
-                evento.IdTipoEventoNavigation.NombreTipo,
-                evento.Imagenes
-                    .Where(imagen => imagen.Activo == true)
-                    .OrderByDescending(imagen => imagen.Principal == true)
-                    .ThenBy(imagen => imagen.Orden)
+                evento.id_evento,
+                evento.nombre_evento,
+                evento.descripcion,
+                evento.fecha_evento,
+                evento.fecha_inicio_ventas,
+                evento.fecha_fin_ventas,
+                evento.fecha_creacion,
+                evento.capacidad_total,
+                evento.id_tipo_evento,
+                evento.id_tipo_eventoNavigation.nombre_tipo,
+                evento.IMAGENEs
+                    .OrderByDescending(imagen => imagen.principal == true)
                     .Select(imagen => new ImagenEventoDto(
-                        imagen.IdImagen,
-                        imagen.RutaUrl,
-                        imagen.Principal == true))
+                        imagen.id_imagen,
+                        imagen.ruta_url,
+                        imagen.principal == true))
                     .ToList(),
-                evento.EventoAsientos.Count(ea => ea.Estado == "DISPONIBLE"),
-                evento.EventoAsientos.Count(ea => ea.Estado == "RESERVADO"),
-                evento.EventoAsientos.Count(ea => ea.Estado == "VENDIDO"),
-                // PrecioDesde desde EVENTO_ZONA igual que en el resumen
-                evento.EventoZonas
-                    .Where(ez => ez.Activo == true)
-                    .Select(ez => (decimal?)ez.Precio)
+                evento.EVENTO_ASIENTOs.Count(ea => ea.estado == "DISPONIBLE"),
+                evento.EVENTO_ASIENTOs.Count(ea => ea.estado == "RESERVADO"),
+                evento.EVENTO_ASIENTOs.Count(ea => ea.estado == "VENDIDO"),
+                evento.EVENTO_ZONAs
+                    .Where(ez => ez.activo == true)
+                    .Select(ez => (decimal?)ez.precio)
                     .Min()))
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -129,52 +118,42 @@ public class EventosController : ControllerBase
         [FromQuery] bool soloDisponibles = false,
         CancellationToken cancellationToken = default)
     {
-        var eventoExiste = await _db.Eventos
+        var eventoExiste = await _db.EVENTOs
             .AsNoTracking()
-            .AnyAsync(evento => evento.IdEvento == id
-                && evento.Activo == true
-                && evento.Publicado == true,
-                cancellationToken);
+            .AnyAsync(evento => evento.id_evento == id && evento.activo == true, cancellationToken);
 
         if (!eventoExiste)
         {
             return NotFound();
         }
 
-        var query = _db.EventoAsientos
+        var query = _db.EVENTO_ASIENTOs
             .AsNoTracking()
-            .Where(ea => ea.IdEvento == id);
+            .Where(ea => ea.id_evento == id);
 
         if (soloDisponibles)
         {
-            query = query.Where(ea => ea.Estado == "DISPONIBLE");
+            query = query.Where(ea => ea.estado == "DISPONIBLE");
         }
 
         var asientos = await query
-            // Ordenar por precio de zona, después por ubicación física del asiento
-            .OrderBy(ea => ea.IdAsientoNavigation.IdZonaNavigation.NombreZona)
-            .ThenBy(ea => ea.IdAsientoNavigation.Fila)
-            .ThenBy(ea => ea.IdAsientoNavigation.Numero)
+            .OrderBy(ea => ea.id_asientoNavigation.id_zonaNavigation.nombre_zona)
+            .ThenBy(ea => ea.id_asientoNavigation.fila)
+            .ThenBy(ea => ea.id_asientoNavigation.numero)
             .Select(ea => new EventoAsientoDto(
-                ea.IdEventoAsiento,
-                ea.IdAsiento,
-                // CodigoAsiento ya no existe en Asiento — lo construimos con Fila + Numero
-                // Ej: "A-12", "B-5"
-                ea.IdAsientoNavigation.Fila + "-" + ea.IdAsientoNavigation.Numero.ToString(),
-                ea.IdAsientoNavigation.Fila,
-                ea.IdAsientoNavigation.Numero,
-                ea.IdAsientoNavigation.IdZona,
-                ea.IdAsientoNavigation.IdZonaNavigation.NombreZona,
-                ea.IdAsientoNavigation.IdZonaNavigation.ColorHex,
-                // Precio ya no está en EVENTO_ASIENTO sino en EVENTO_ZONA del evento
-                // Buscamos la zona correspondiente a este asiento en este evento
-                _db.EventoZonas
-                    .Where(ez => ez.IdEvento == id
-                        && ez.IdZona == ea.IdAsientoNavigation.IdZona
-                        && ez.Activo == true)
-                    .Select(ez => ez.Precio)
+                ea.id_evento_asiento,
+                ea.id_asiento,
+                ea.id_asientoNavigation.fila + ea.id_asientoNavigation.numero.ToString(),
+                ea.id_asientoNavigation.fila,
+                ea.id_asientoNavigation.numero,
+                ea.id_asientoNavigation.id_zona,
+                ea.id_asientoNavigation.id_zonaNavigation.nombre_zona,
+                ea.id_asientoNavigation.id_zonaNavigation.color_hex,
+                _db.EVENTO_ZONAs
+                    .Where(ez => ez.id_evento == id && ez.id_zona == ea.id_asientoNavigation.id_zona)
+                    .Select(ez => ez.precio)
                     .FirstOrDefault(),
-                ea.Estado))
+                ea.estado))
             .ToListAsync(cancellationToken);
 
         return Ok(asientos);
@@ -184,13 +163,13 @@ public class EventosController : ControllerBase
     public async Task<ActionResult<IReadOnlyCollection<TipoEventoDto>>> GetTiposEvento(
         CancellationToken cancellationToken = default)
     {
-        var tiposEvento = await _db.TipoEventos
+        var tiposEvento = await _db.TIPO_EVENTOs
             .AsNoTracking()
-            .Where(tipoEvento => tipoEvento.Activo == true)
-            .OrderBy(tipoEvento => tipoEvento.NombreTipo)
+            .Where(tipoEvento => tipoEvento.activo == true)
+            .OrderBy(tipoEvento => tipoEvento.nombre_tipo)
             .Select(tipoEvento => new TipoEventoDto(
-                tipoEvento.IdTipoEvento,
-                tipoEvento.NombreTipo))
+                tipoEvento.id_tipo_evento,
+                tipoEvento.nombre_tipo))
             .ToListAsync(cancellationToken);
 
         return Ok(tiposEvento);

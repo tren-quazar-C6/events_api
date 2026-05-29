@@ -3,31 +3,31 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class Staff
+public partial class STAFF
 {
-    public int IdStaff { get; set; }
+    public int id_staff { get; set; }
 
-    public int IdRolStaff { get; set; }
+    public int id_rol_staff { get; set; }
 
-    public string Nombre { get; set; } = null!;
+    public string nombre { get; set; } = null!;
 
-    public string Email { get; set; } = null!;
+    public string email { get; set; } = null!;
 
-    public string PasswordHash { get; set; } = null!;
+    public string password_hash { get; set; } = null!;
 
-    public bool? Activo { get; set; }
+    public bool? activo { get; set; }
 
-    public DateTime? FechaRegistro { get; set; }
+    public DateTime? fecha_registro { get; set; }
 
-    public virtual ICollection<Auditorium> Auditoria { get; set; } = new List<Auditorium>();
+    public virtual ICollection<AUDITORIum> AUDITORIa { get; set; } = new List<AUDITORIum>();
 
-    public virtual ICollection<Evento> Eventos { get; set; } = new List<Evento>();
+    public virtual ICollection<EVENTO> EVENTOs { get; set; } = new List<EVENTO>();
 
-    public virtual RolStaff IdRolStaffNavigation { get; set; } = null!;
+    public virtual ICollection<PQR> PQRs { get; set; } = new List<PQR>();
 
-    public virtual ICollection<Pqr> Pqrs { get; set; } = new List<Pqr>();
+    public virtual ICollection<SCAN> SCANs { get; set; } = new List<SCAN>();
 
-    public virtual ICollection<Scan> Scans { get; set; } = new List<Scan>();
+    public virtual ICollection<VENTA> VENTAs { get; set; } = new List<VENTA>();
 
-    public virtual ICollection<Venta> Venta { get; set; } = new List<Venta>();
+    public virtual ROL_STAFF id_rol_staffNavigation { get; set; } = null!;
 }

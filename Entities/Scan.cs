@@ -3,21 +3,21 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class Scan
+public partial class SCAN
 {
-    public int IdScan { get; set; }
+    public int id_scan { get; set; }
 
-    public int IdTicket { get; set; }
+    public int id_ticket { get; set; }
 
-    public int IdStaff { get; set; }
+    public int id_staff { get; set; }
 
-    public DateTime? FechaScan { get; set; }
+    public DateTime? fecha_scan { get; set; }
 
-    public string Resultado { get; set; } = null!;
+    public string resultado { get; set; } = null!;
 
-    public string? Observacion { get; set; }
+    public string? observacion { get; set; }
 
-    public virtual Staff IdStaffNavigation { get; set; } = null!;
+    public virtual STAFF id_staffNavigation { get; set; } = null!;
 
-    public virtual Ticket IdTicketNavigation { get; set; } = null!;
+    public virtual TICKET id_ticketNavigation { get; set; } = null!;
 }

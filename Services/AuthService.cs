@@ -25,17 +25,17 @@ public class AuthService
         // Generar hash nativo y totalmente compatible
         string hashSeguro = BCrypt.Net.BCrypt.HashPassword(contrasena);
 
-        var nuevoStaff = new Staff
+        var nuevoStaff = new STAFF
         {
-            Nombre = nombre,
-            Email = email,
-            PasswordHash = hashSeguro,
-            IdRolStaff = idRol,
-            Activo = true, // Tu BD usa INT para activo
-            FechaRegistro = DateTime.Now
+            nombre = nombre,
+            email = email,
+            password_hash = hashSeguro,
+            id_rol_staff = idRol,
+            activo = true, // Tu BD usa INT para activo
+            fecha_registro = DateTime.Now
         };
 
-        await _context.Staff.AddAsync(nuevoStaff);
+        await _context.STAFF.AddAsync(nuevoStaff);
         return await _context.SaveChangesAsync() > 0;
     }
 
@@ -44,25 +44,25 @@ public class AuthService
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
         {
             // 1. Buscar al empleado por correo e incluir su Rol de la BD
-            var staff = await _context.Staff
-                .Include(s => s.IdRolStaffNavigation) // Asegura cargar la relación del rol
-                .FirstOrDefaultAsync(s => s.Email == request.Correo && s.Activo == true);
+            var staff = await _context.STAFF
+                .Include(s => s.id_rol_staffNavigation) // Asegura cargar la relación del rol
+                .FirstOrDefaultAsync(s => s.email == request.Correo && s.activo == true);
 
             if (staff == null) return null;
 
             // 2. Verificar contraseña con BCrypt
             // Nota: En producción, las contraseñas en la BD deben haberse guardado usando BCrypt.HashPassword
-            bool contrasenaValida = BCrypt.Net.BCrypt.Verify(request.Contrasena, staff.PasswordHash);
+            bool contrasenaValida = BCrypt.Net.BCrypt.Verify(request.Contrasena, staff.password_hash);
             if (!contrasenaValida) return null;
 
             // 3. Generar Claims basados en su rol de base de datos
-            var nombreRol = staff.IdRolStaffNavigation?.NombreRol ?? "Access"; 
+            var nombreRol = staff.id_rol_staffNavigation?.nombre_rol ?? "Access"; 
             
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, staff.IdStaff.ToString()),
-                new Claim(ClaimTypes.Name, staff.Nombre ?? ""),
-                new Claim(ClaimTypes.Email, staff.Email),
+                new Claim(ClaimTypes.NameIdentifier, staff.id_staff.ToString()),
+                new Claim(ClaimTypes.Name, staff.nombre ?? ""),
+                new Claim(ClaimTypes.Email, staff.email ?? ""),
                 new Claim(ClaimTypes.Role, nombreRol) // 'Admin', 'Taquilla' o 'Access'
             };
 
@@ -86,8 +86,8 @@ public class AuthService
             return new AuthResponseDto()
             {
                 Token = tokenHandler.WriteToken(tokenCreado),
-                Nombre = staff.Nombre ?? "",
-                Correo = staff.Email,
+                Nombre = staff.nombre ?? "",
+                Correo = staff.email ?? "",
                 Rol = nombreRol,
                 Expiracion = expiracion
             };

@@ -3,31 +3,31 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class Ticket
+public partial class TICKET
 {
-    public int IdTicket { get; set; }
+    public int id_ticket { get; set; }
 
-    public int IdVenta { get; set; }
+    public int id_venta { get; set; }
 
-    public int IdEstadoTicket { get; set; }
+    public int id_estado_ticket { get; set; }
 
-    public int IdEventoAsiento { get; set; }
+    public int id_evento_asiento { get; set; }
 
-    public string CodigoUnico { get; set; } = null!;
+    public string codigo_unico { get; set; } = null!;
 
-    public string QrToken { get; set; } = null!;
+    public string qr_token { get; set; } = null!;
 
-    public decimal PrecioPagado { get; set; }
+    public decimal precio_pagado { get; set; }
 
-    public DateTime? FechaGeneracion { get; set; }
+    public DateTime? fecha_generacion { get; set; }
 
-    public DateTime? FechaImpresion { get; set; }
+    public DateTime? fecha_impresion { get; set; }
 
-    public virtual EstadoTicket IdEstadoTicketNavigation { get; set; } = null!;
+    public virtual ICollection<SCAN> SCANs { get; set; } = new List<SCAN>();
 
-    public virtual EventoAsiento IdEventoAsientoNavigation { get; set; } = null!;
+    public virtual ESTADO_TICKET id_estado_ticketNavigation { get; set; } = null!;
 
-    public virtual Venta IdVentaNavigation { get; set; } = null!;
+    public virtual EVENTO_ASIENTO id_evento_asientoNavigation { get; set; } = null!;
 
-    public virtual ICollection<Scan> Scans { get; set; } = new List<Scan>();
+    public virtual VENTA id_ventaNavigation { get; set; } = null!;
 }

@@ -3,19 +3,19 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class Imagene
+public partial class IMAGENE
 {
-    public int IdImagen { get; set; }
+    public int id_imagen { get; set; }
 
-    public int IdEvento { get; set; }
+    public int id_evento { get; set; }
 
-    public string RutaUrl { get; set; } = null!;
+    public string ruta_url { get; set; } = null!;
 
-    public bool? Principal { get; set; }
+    public bool? principal { get; set; }
 
-    public int? Orden { get; set; }
+    public int? orden { get; set; }
 
-    public bool? Activo { get; set; }
+    public bool? activo { get; set; }
 
-    public virtual Evento IdEventoNavigation { get; set; } = null!;
+    public virtual EVENTO id_eventoNavigation { get; set; } = null!;
 }

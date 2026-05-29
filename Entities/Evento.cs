@@ -3,47 +3,47 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class Evento
+public partial class EVENTO
 {
-    public int IdEvento { get; set; }
+    public int id_evento { get; set; }
 
-    public int IdTipoEvento { get; set; }
+    public int id_tipo_evento { get; set; }
 
-    public int CreadoPorStaff { get; set; }
+    public int creado_por_staff { get; set; }
 
-    public string NombreEvento { get; set; } = null!;
+    public string nombre_evento { get; set; } = null!;
 
-    public string? Descripcion { get; set; }
+    public string? descripcion { get; set; }
 
-    public DateTime FechaEvento { get; set; }
+    public DateTime fecha_evento { get; set; }
 
-    public DateTime FechaInicioVentas { get; set; }
+    public DateTime fecha_inicio_ventas { get; set; }
 
-    public DateTime FechaFinVentas { get; set; }
+    public DateTime fecha_fin_ventas { get; set; }
 
-    public int CapacidadTotal { get; set; }
+    public int capacidad_total { get; set; }
 
-    public bool? Publicado { get; set; }
+    public bool? publicado { get; set; }
 
-    public bool? Activo { get; set; }
+    public bool? activo { get; set; }
 
-    public DateTime? FechaCreacion { get; set; }
+    public DateTime? fecha_creacion { get; set; }
 
-    public DateTime? FechaCancelacion { get; set; }
+    public DateTime? fecha_cancelacion { get; set; }
 
-    public string? MotivoCancelacion { get; set; }
+    public string? motivo_cancelacion { get; set; }
 
-    public virtual Staff CreadoPorStaffNavigation { get; set; } = null!;
+    public virtual ICollection<EVENTO_ASIENTO> EVENTO_ASIENTOs { get; set; } = new List<EVENTO_ASIENTO>();
 
-    public virtual ICollection<EventoAsiento> EventoAsientos { get; set; } = new List<EventoAsiento>();
+    public virtual ICollection<EVENTO_ZONA> EVENTO_ZONAs { get; set; } = new List<EVENTO_ZONA>();
 
-    public virtual ICollection<EventoZona> EventoZonas { get; set; } = new List<EventoZona>();
+    public virtual ICollection<FAVORITO> FAVORITOs { get; set; } = new List<FAVORITO>();
 
-    public virtual ICollection<Favorito> Favoritos { get; set; } = new List<Favorito>();
+    public virtual ICollection<IMAGENE> IMAGENEs { get; set; } = new List<IMAGENE>();
 
-    public virtual TipoEvento IdTipoEventoNavigation { get; set; } = null!;
+    public virtual ICollection<NOTIFICACIONE> NOTIFICACIONEs { get; set; } = new List<NOTIFICACIONE>();
 
-    public virtual ICollection<Imagene> Imagenes { get; set; } = new List<Imagene>();
+    public virtual STAFF creado_por_staffNavigation { get; set; } = null!;
 
-    public virtual ICollection<Notificacione> Notificaciones { get; set; } = new List<Notificacione>();
+    public virtual TIPO_EVENTO id_tipo_eventoNavigation { get; set; } = null!;
 }

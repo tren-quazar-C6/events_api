@@ -3,27 +3,27 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class Pqr
+public partial class PQR
 {
-    public int IdPqrs { get; set; }
+    public int id_pqrs { get; set; }
 
-    public int IdUsuario { get; set; }
+    public int id_usuario { get; set; }
 
-    public int? AsignadoStaff { get; set; }
+    public int? asignado_staff { get; set; }
 
-    public string Tipo { get; set; } = null!;
+    public string tipo { get; set; } = null!;
 
-    public string Asunto { get; set; } = null!;
+    public string asunto { get; set; } = null!;
 
-    public string? Estado { get; set; }
+    public string? estado { get; set; }
 
-    public DateTime? FechaCreacion { get; set; }
+    public DateTime? fecha_creacion { get; set; }
 
-    public DateTime? FechaUltimaRespuesta { get; set; }
+    public DateTime? fecha_ultima_respuesta { get; set; }
 
-    public virtual Staff? AsignadoStaffNavigation { get; set; }
+    public virtual ICollection<PQRS_MENSAJE> PQRS_MENSAJEs { get; set; } = new List<PQRS_MENSAJE>();
 
-    public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
+    public virtual STAFF? asignado_staffNavigation { get; set; }
 
-    public virtual ICollection<PqrsMensaje> PqrsMensajes { get; set; } = new List<PqrsMensaje>();
+    public virtual USUARIO id_usuarioNavigation { get; set; } = null!;
 }
