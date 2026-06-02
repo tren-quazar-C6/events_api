@@ -50,7 +50,7 @@ public class ScanValidationService
             return new ScanTicketResponse("INVALIDO", "QR inexistente.", null, null, "QR_INEXISTENTE");
         }
 
-        if (AllowedTicketStates.Contains(ticket.IdEstadoTicketNavigation.NombreEstado.ToUpperInvariant()))
+        if (!AllowedTicketStates.Contains(ticket.IdEstadoTicketNavigation.NombreEstado.ToUpperInvariant()))
         {
             var scanId = await SaveScanAsync(ticket.IdTicket, request.id_empleado, "INVALIDO", "Ticket cancelado o inactivo.", request.dispositivo, scanTime, cancellationToken);
             await CreateAlertAsync("TICKET_CANCELADO", "Scan de ticket cancelado/inactivo.", request.qr_token, request.id_empleado, request.dispositivo, ticket.IdTicket, scanId, cancellationToken);
