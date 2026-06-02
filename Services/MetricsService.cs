@@ -1,5 +1,6 @@
 using System.Globalization;
 using events_api.Data;
+using events_api.DTOs;
 using events_api.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,7 +41,7 @@ public class MetricsService
             .CountAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<(int week, decimal revenue)>> GetWeeklySalesAsync(
+    public async Task<IReadOnlyCollection<WeeklySalesDto>> GetWeeklySalesAsync(
         DateTime desde,
         DateTime hasta,
         CancellationToken cancellationToken = default)
@@ -55,15 +56,24 @@ public class MetricsService
             .ToListAsync(cancellationToken);
 
         var weeklySales = sales
-            .GroupBy(s => ISOWeek.GetWeekOfYear(DateOnly.FromDateTime(s.fecha_venta)))
-            .Select(g => (week: g.Key, revenue: g.Sum(s => s.Total)))
-            .OrderBy(ws => ws.week)
+            .GroupBy(s => new
+            {
+                Anio = ISOWeek.GetYear(s.fecha_venta),
+                Semana = ISOWeek.GetWeekOfYear(s.fecha_venta)
+            })
+            .Select(g => new WeeklySalesDto(
+                g.Key.Anio,
+                g.Key.Semana,
+                g.Sum(s => s.Total),
+                g.Count()))
+            .OrderBy(ws => ws.Anio)
+            .ThenBy(ws => ws.Semana)
             .ToList();
 
         return weeklySales;
     }
 
-    public async Task<decimal> GetAttendanceRateAsync(
+    public async Task<AttendanceRateDto> GetAttendanceRateAsync(
         int idEvento,
         CancellationToken cancellationToken = default)
     {
@@ -76,9 +86,14 @@ public class MetricsService
             .AsNoTracking()
             .CountAsync(ticket => ticket.IdEventoAsientoNavigation.IdEvento == idEvento, cancellationToken);
 
-        if (totalTickets == 0)
-            return 0;
+        var attendanceRate = totalTickets == 0
+            ? 0d
+            : (double)validScans / totalTickets * 100;
 
-        return (decimal)validScans / totalTickets * 100;
+        return new AttendanceRateDto(
+            idEvento,
+            totalTickets,
+            validScans,
+            attendanceRate);
     }
 }

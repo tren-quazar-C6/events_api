@@ -14,6 +14,50 @@ public class SalesService
         _db = db;
     }
 
+    public async Task<SaleResponse?> GetSaleAsync(
+        int idVenta,
+        CancellationToken cancellationToken = default)
+    {
+        var sale = await _db.Ventas
+            .AsNoTracking()
+            .Where(venta => venta.IdVenta == idVenta)
+            .Select(venta => new
+            {
+                venta.IdVenta,
+                venta.IdUsuario,
+                venta.IdStaff,
+                venta.TipoVenta,
+                venta.MetodoPago,
+                venta.Total,
+                venta.EstadoPago,
+                venta.ReferenciaInterna,
+                venta.FechaVenta
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (sale is null)
+            return null;
+
+        var seatIds = await _db.SaleDetails
+            .AsNoTracking()
+            .Where(detail => detail.IdVenta == idVenta)
+            .OrderBy(detail => detail.IdSaleDetail)
+            .Select(detail => detail.IdEventoAsiento)
+            .ToListAsync(cancellationToken);
+
+        return new SaleResponse(
+            sale.IdVenta,
+            sale.IdUsuario,
+            sale.IdStaff,
+            sale.TipoVenta,
+            sale.MetodoPago,
+            sale.Total,
+            sale.EstadoPago ?? "APPROVED",
+            sale.ReferenciaInterna,
+            sale.FechaVenta ?? DateTime.UtcNow,
+            seatIds);
+    }
+
     public async Task<CreateSaleResponse> CreateSaleAsync(
         CreateSaleRequest request,
         CancellationToken cancellationToken = default)

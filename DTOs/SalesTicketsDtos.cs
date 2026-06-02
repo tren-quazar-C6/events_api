@@ -15,6 +15,18 @@ public record CreateSaleResponse(
     string estado_pago,
     IReadOnlyCollection<int> id_evento_asientos);
 
+public record SaleResponse(
+    int id_venta,
+    int id_usuario,
+    int? id_staff,
+    string tipo_venta,
+    string? metodo_pago,
+    decimal total,
+    string estado_pago,
+    string? referencia_interna,
+    DateTime fecha_venta,
+    IReadOnlyCollection<int> id_evento_asientos);
+
 public record GenerateTicketsRequest(
     [Required] int id_venta);
 

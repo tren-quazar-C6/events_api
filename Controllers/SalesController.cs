@@ -19,6 +19,22 @@ public class SalesController : ControllerBase
         _salesService = salesService;
     }
 
+    [HttpGet("sales/{id:int}")]
+    [RequirePermission("sales.read")]
+    public async Task<ActionResult<ServiceResponse<SaleResponse>>> GetSale(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var sale = await _salesService.GetSaleAsync(id, cancellationToken);
+
+        if (sale is null)
+        {
+            return NotFound(ServiceResponse<SaleResponse>.Fail("Venta no encontrada."));
+        }
+
+        return Ok(ServiceResponse<SaleResponse>.Ok(sale));
+    }
+
     [HttpPost("sales")]
     [RequirePermission("sales.create")]
     public async Task<ActionResult<ServiceResponse<CreateSaleResponse>>> CreateSale(
