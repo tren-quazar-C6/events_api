@@ -1,7 +1,4 @@
 using events_api.Data;
-using events_api.Responses;
-using events_api.Security;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +6,6 @@ namespace events_api.Controllers;
 
 [ApiController]
 [Route("api/events")]
-[Authorize]
 public class EventsPublicController : ControllerBase
 {
     private readonly QuasarDbContext _db;
@@ -20,26 +16,25 @@ public class EventsPublicController : ControllerBase
     }
 
     [HttpGet]
-    [RequirePermission("events.read")]
-    public async Task<ActionResult<ServiceResponse<object>>> GetEvents(
+    public async Task<ActionResult<object>> GetEvents(
         CancellationToken cancellationToken = default)
     {
-        var events = await _db.EVENTOs
+        var events = await _db.Eventos
             .AsNoTracking()
-            .Where(e => e.activo == true && e.publicado == true)
-            .OrderBy(e => e.fecha_evento)
+            .Where(e => e.Activo == true && e.Publicado == true)
+            .OrderBy(e => e.FechaEvento)
             .Select(e => new
             {
-                e.id_evento,
-                e.nombre_evento,
-                e.descripcion,
-                e.fecha_evento,
-                e.fecha_inicio_ventas,
-                e.fecha_fin_ventas,
-                e.capacidad_total
+                id_evento = e.IdEvento,
+                nombre_evento = e.NombreEvento,
+                descripcion = e.Descripcion,
+                fecha_evento = e.FechaEvento,
+                fecha_inicio_ventas = e.FechaInicioVentas,
+                fecha_fin_ventas = e.FechaFinVentas,
+                capacidad_total = e.CapacidadTotal
             })
             .ToListAsync(cancellationToken);
 
-        return Ok(ServiceResponse<object>.Ok(events));
+        return Ok(events);
     }
 }

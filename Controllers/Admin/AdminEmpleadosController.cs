@@ -46,27 +46,27 @@ public class AdminEmpleadosController : ControllerBase
         [FromQuery] bool soloActivos = true,
         CancellationToken cancellationToken = default)
     {
-        var query = _db.STAFF.AsNoTracking();
+        var query = _db.Staff.AsNoTracking();
 
         if (soloActivos)
-            query = query.Where(s => s.activo == true);
+            query = query.Where(s => s.Activo == true);
 
         if (id_rol_staff is not null)
-            query = query.Where(s => s.id_rol_staff == id_rol_staff);
+            query = query.Where(s => s.IdRolStaff == id_rol_staff);
 
         if (!string.IsNullOrWhiteSpace(busqueda))
             query = query.Where(s =>
-                s.nombre.Contains(busqueda) ||
-                s.email.Contains(busqueda));
+                s.Nombre.Contains(busqueda) ||
+                s.Email.Contains(busqueda));
 
         var empleados = await query
-            .OrderBy(s => s.nombre)
+            .OrderBy(s => s.Nombre)
             .Select(s => new EmpleadoResumenDto(
-                s.id_staff,
-                s.nombre,
-                s.email,
-                s.id_rol_staffNavigation.nombre_rol,
-                s.activo ?? true))
+                s.IdStaff,
+                s.Nombre,
+                s.Email,
+                s.IdRolStaffNavigation.NombreRol,
+                s.Activo ?? true))
             .ToListAsync(cancellationToken);
 
         return Ok(ServiceResponse<IReadOnlyCollection<EmpleadoResumenDto>>.Ok(empleados));
@@ -81,17 +81,17 @@ public class AdminEmpleadosController : ControllerBase
         int id,
         CancellationToken cancellationToken = default)
     {
-        var empleado = await _db.STAFF
+        var empleado = await _db.Staff
             .AsNoTracking()
-            .Where(s => s.id_staff == id)
+            .Where(s => s.IdStaff == id)
             .Select(s => new EmpleadoDetalleDto(
-                s.id_staff,
-                s.nombre,
-                s.email,
-                s.id_rol_staff,
-                s.id_rol_staffNavigation.nombre_rol,
-                s.activo ?? true,
-                s.fecha_registro))
+                s.IdStaff,
+                s.Nombre,
+                s.Email,
+                s.IdRolStaff,
+                s.IdRolStaffNavigation.NombreRol,
+                s.Activo ?? true,
+                s.FechaRegistro))
             .FirstOrDefaultAsync(cancellationToken);
 
         return empleado is null
@@ -109,8 +109,8 @@ public class AdminEmpleadosController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         // Validar que el rol existe
-        var rolExiste = await _db.ROL_STAFFs
-            .AnyAsync(r => r.id_rol_staff == request.id_rol_staff && r.activo == true,
+        var rolExiste = await _db.RolStaffs
+            .AnyAsync(r => r.IdRolStaff == request.id_rol_staff && r.Activo == true,
                 cancellationToken);
 
         if (!rolExiste)
@@ -118,43 +118,43 @@ public class AdminEmpleadosController : ControllerBase
                 .Fail("El rol no existe o está inactivo"));
 
         // Validar email único
-        var emailExiste = await _db.STAFF
-            .AnyAsync(s => s.email == request.email, cancellationToken);
+        var emailExiste = await _db.Staff
+            .AnyAsync(s => s.Email == request.email, cancellationToken);
 
         if (emailExiste)
             return BadRequest(ServiceResponse<EmpleadoDetalleDto>
                 .Fail("Ya existe un empleado con ese email"));
 
-        var empleado = new STAFF
+        var empleado = new Staff
         {
-            id_rol_staff   = request.id_rol_staff,
-            nombre         = request.nombre,
-            email          = request.email,
-            password_hash  = HashPassword(request.password),
-            activo         = true,
-            fecha_registro = DateTime.UtcNow
+            IdRolStaff   = request.id_rol_staff,
+            Nombre         = request.nombre,
+            Email          = request.email,
+            PasswordHash  = HashPassword(request.password),
+            Activo         = true,
+            FechaRegistro = DateTime.UtcNow
         };
 
-        _db.STAFF.Add(empleado);
+        _db.Staff.Add(empleado);
         await _db.SaveChangesAsync(cancellationToken);
 
         // Traer el DTO completo con el nombre del rol
-        var dto = await _db.STAFF
+        var dto = await _db.Staff
             .AsNoTracking()
-            .Where(s => s.id_staff == empleado.id_staff)
+            .Where(s => s.IdStaff == empleado.IdStaff)
             .Select(s => new EmpleadoDetalleDto(
-                s.id_staff,
-                s.nombre,
-                s.email,
-                s.id_rol_staff,
-                s.id_rol_staffNavigation.nombre_rol,
-                s.activo ?? true,
-                s.fecha_registro))
+                s.IdStaff,
+                s.Nombre,
+                s.Email,
+                s.IdRolStaff,
+                s.IdRolStaffNavigation.NombreRol,
+                s.Activo ?? true,
+                s.FechaRegistro))
             .FirstAsync(cancellationToken);
 
         return CreatedAtAction(
             nameof(GetEmpleado),
-            new { id = empleado.id_staff },
+            new { id = empleado.IdStaff },
             ServiceResponse<EmpleadoDetalleDto>.Ok(dto));
     }
 
@@ -168,8 +168,8 @@ public class AdminEmpleadosController : ControllerBase
         [FromBody] UpdateEmpleadoRequest request,
         CancellationToken cancellationToken = default)
     {
-        var empleado = await _db.STAFF
-            .FirstOrDefaultAsync(s => s.id_staff == id, cancellationToken);
+        var empleado = await _db.Staff
+            .FirstOrDefaultAsync(s => s.IdStaff == id, cancellationToken);
 
         if (empleado is null)
             return NotFound(ServiceResponse<object>.Fail("Empleado no encontrado"));
@@ -177,31 +177,31 @@ public class AdminEmpleadosController : ControllerBase
         // Validar rol si viene
         if (request.id_rol_staff is not null)
         {
-            var rolExiste = await _db.ROL_STAFFs
-                .AnyAsync(r => r.id_rol_staff == request.id_rol_staff && r.activo == true,
+            var rolExiste = await _db.RolStaffs
+                .AnyAsync(r => r.IdRolStaff == request.id_rol_staff && r.Activo == true,
                     cancellationToken);
 
             if (!rolExiste)
                 return BadRequest(ServiceResponse<object>.Fail("El rol no existe o está inactivo"));
 
-            empleado.id_rol_staff = request.id_rol_staff.Value;
+            empleado.IdRolStaff = request.id_rol_staff.Value;
         }
 
         // Validar email único si viene y es diferente al actual
-        if (request.email is not null && request.email != empleado.email)
+        if (request.email is not null && request.email != empleado.Email)
         {
-            var emailExiste = await _db.STAFF
-                .AnyAsync(s => s.email == request.email && s.id_staff != id,
+            var emailExiste = await _db.Staff
+                .AnyAsync(s => s.Email == request.email && s.IdRolStaff != id,
                     cancellationToken);
 
             if (emailExiste)
                 return BadRequest(ServiceResponse<object>.Fail("Ya existe un empleado con ese email"));
 
-            empleado.email = request.email;
+            empleado.Email = request.email;
         }
 
-        if (request.nombre   is not null) empleado.nombre        = request.nombre;
-        if (request.password is not null) empleado.password_hash = HashPassword(request.password);
+        if (request.nombre   is not null) empleado.Nombre        = request.nombre;
+        if (request.password is not null) empleado.PasswordHash = HashPassword(request.password);
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -217,16 +217,16 @@ public class AdminEmpleadosController : ControllerBase
         int id,
         CancellationToken cancellationToken = default)
     {
-        var empleado = await _db.STAFF
-            .FirstOrDefaultAsync(s => s.id_staff == id, cancellationToken);
+        var empleado = await _db.Staff
+            .FirstOrDefaultAsync(s => s.IdStaff == id, cancellationToken);
 
         if (empleado is null)
             return NotFound(ServiceResponse<object>.Fail("Empleado no encontrado"));
 
-        if (empleado.activo == false)
+        if (empleado.Activo == false)
             return BadRequest(ServiceResponse<object>.Fail("El empleado ya está inactivo"));
 
-        empleado.activo = false;
+        empleado.Activo = false;
         await _db.SaveChangesAsync(cancellationToken);
 
         return Ok(ServiceResponse<object>.Ok("Empleado desactivado correctamente"));
@@ -240,14 +240,14 @@ public class AdminEmpleadosController : ControllerBase
     public async Task<ActionResult<ServiceResponse<IReadOnlyCollection<RolStaffDto>>>> GetRoles(
         CancellationToken cancellationToken = default)
     {
-        var roles = await _db.ROL_STAFFs
+        var roles = await _db.RolStaffs
             .AsNoTracking()
-            .Where(r => r.activo == true)
-            .OrderBy(r => r.nombre_rol)
+            .Where(r => r.Activo == true)
+            .OrderBy(r => r.NombreRol)
             .Select(r => new RolStaffDto(
-                r.id_rol_staff,
-                r.nombre_rol,
-                r.activo ?? true))
+                r.IdRolStaff,
+                r.NombreRol,
+                r.Activo ?? true))
             .ToListAsync(cancellationToken);
 
         return Ok(ServiceResponse<IReadOnlyCollection<RolStaffDto>>.Ok(roles));

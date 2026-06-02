@@ -2,15 +2,15 @@
 
 namespace events_api.Entities;
 
-public partial class PERMISSION
+public partial class Permission
 {
-    public int id_permission { get; set; }
+    public int IdPermission { get; set; }
 
-    public string code { get; set; } = null!;
+    public string Code { get; set; } = null!;
 
-    public string name { get; set; } = null!;
+    public string Name { get; set; } = null!;
 
-    public bool? active { get; set; }
+    public bool? Active { get; set; }
 
-    public virtual ICollection<ROLE_PERMISSION> ROLE_PERMISSIONs { get; set; } = new List<ROLE_PERMISSION>();
+    public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
 }

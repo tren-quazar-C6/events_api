@@ -3,33 +3,35 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class STAFF
+public partial class Staff
 {
-    public int id_staff { get; set; }
+    public int IdStaff { get; set; }
 
-    public int id_rol_staff { get; set; }
+    public int IdRolStaff { get; set; }
 
-    public string nombre { get; set; } = null!;
+    public string Nombre { get; set; } = null!;
 
-    public string email { get; set; } = null!;
+    public string Email { get; set; } = null!;
 
-    public string password_hash { get; set; } = null!;
+    public string PasswordHash { get; set; } = null!;
 
-    public bool? activo { get; set; }
+    public bool? Activo { get; set; }
 
-    public DateTime? fecha_registro { get; set; }
+    public DateTime? FechaRegistro { get; set; }
 
-    public virtual ICollection<AUDITORIum> AUDITORIa { get; set; } = new List<AUDITORIum>();
+    public virtual ICollection<Auditorium> Auditoria { get; set; } = new List<Auditorium>();
 
-    public virtual ICollection<EVENTO> EVENTOs { get; set; } = new List<EVENTO>();
+    public virtual ICollection<Evento> Eventos { get; set; } = new List<Evento>();
 
-    public virtual ICollection<PQR> PQRs { get; set; } = new List<PQR>();
+    public virtual RolStaff IdRolStaffNavigation { get; set; } = null!;
 
-    public virtual ICollection<SCAN> SCANs { get; set; } = new List<SCAN>();
+    public virtual ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
 
-    public virtual ICollection<SCAN_ALERT> SCAN_ALERTs { get; set; } = new List<SCAN_ALERT>();
+    public virtual ICollection<Pqr> Pqrs { get; set; } = new List<Pqr>();
 
-    public virtual ICollection<VENTA> VENTAs { get; set; } = new List<VENTA>();
+    public virtual ICollection<ScanAlert> ScanAlerts { get; set; } = new List<ScanAlert>();
 
-    public virtual ROL_STAFF id_rol_staffNavigation { get; set; } = null!;
+    public virtual ICollection<Scan> Scans { get; set; } = new List<Scan>();
+
+    public virtual ICollection<Venta> Venta { get; set; } = new List<Venta>();
 }

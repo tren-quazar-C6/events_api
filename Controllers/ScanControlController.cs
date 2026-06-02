@@ -39,17 +39,17 @@ public class ScanControlController : ControllerBase
         var today = DateTime.UtcNow.Date;
         var tomorrow = today.AddDays(1);
 
-        var eventsToday = await _db.EVENTOs
+        var eventsToday = await _db.Eventos
             .AsNoTracking()
-            .Where(e => e.fecha_evento >= today && e.fecha_evento < tomorrow)
-            .Where(e => e.activo == true && e.publicado == true)
-            .OrderBy(e => e.fecha_evento)
+            .Where(e => e.FechaEvento >= today && e.FechaEvento < tomorrow)
+            .Where(e => e.Activo == true && e.Publicado == true)
+            .OrderBy(e => e.FechaEvento)
             .Select(e => new TodayEventDto(
-                e.id_evento,
-                e.nombre_evento,
-                e.fecha_evento,
-                e.publicado ?? false,
-                e.activo ?? false))
+                e.IdEvento,
+                e.NombreEvento,
+                e.FechaEvento,
+                e.Publicado ?? false,
+                e.Activo ?? false))
             .ToListAsync(cancellationToken);
 
         return Ok(ServiceResponse<IReadOnlyCollection<TodayEventDto>>.Ok(eventsToday));
@@ -60,20 +60,20 @@ public class ScanControlController : ControllerBase
         int id,
         CancellationToken cancellationToken = default)
     {
-        var ticket = await _db.TICKETs
+        var ticket = await _db.Tickets
             .AsNoTracking()
-            .Where(t => t.id_ticket == id)
+            .Where(t => t.IdTicket == id)
             .Select(t => new TicketLookupDto(
-                t.id_ticket,
-                t.codigo_unico,
-                t.qr_token,
-                t.id_estado_ticketNavigation.nombre_estado,
-                t.id_evento_asientoNavigation.id_evento,
-                t.id_evento_asientoNavigation.id_eventoNavigation.nombre_evento,
-                t.id_evento_asientoNavigation.id_eventoNavigation.fecha_evento,
-                t.id_evento_asientoNavigation.id_eventoNavigation.fecha_inicio_ventas,
-                t.id_evento_asientoNavigation.id_eventoNavigation.fecha_fin_ventas,
-                t.precio_pagado))
+                t.IdTicket,
+                t.CodigoUnico,
+                t.QrToken,
+                t.IdEstadoTicketNavigation.NombreEstado,
+                t.IdEventoAsientoNavigation.IdEvento,
+                t.IdEventoAsientoNavigation.IdEventoNavigation.NombreEvento,
+                t.IdEventoAsientoNavigation.IdEventoNavigation.FechaEvento,
+                t.IdEventoAsientoNavigation.IdEventoNavigation.FechaInicioVentas,
+                t.IdEventoAsientoNavigation.IdEventoNavigation.FechaFinVentas,
+                t.PrecioPagado))
             .FirstOrDefaultAsync(cancellationToken);
 
         return ticket is null
@@ -86,32 +86,32 @@ public class ScanControlController : ControllerBase
         [FromBody] CreateScanAlertRequest request,
         CancellationToken cancellationToken = default)
     {
-        var alert = new SCAN_ALERT
+        var alert = new ScanAlert
         {
-            id_scan = request.id_scan,
-            id_ticket = request.id_ticket,
-            id_staff = request.id_staff,
-            tipo_alerta = request.tipo_alerta,
-            detalle = request.detalle,
-            qr_token = request.qr_token,
-            dispositivo = request.dispositivo,
-            payload_json = request.payload_json,
-            fecha_alerta = DateTime.UtcNow
+            IdScan = request.id_scan,
+            IdTicket = request.id_ticket,
+            IdStaff = request.id_staff,
+            TipoAlerta = request.tipo_alerta,
+            Detalle = request.detalle,
+            QrToken = request.qr_token,
+            Dispositivo = request.dispositivo,
+            PayloadJson = request.payload_json,
+            FechaAlerta = DateTime.UtcNow
         };
 
-        _db.SCAN_ALERTs.Add(alert);
+        _db.ScanAlerts.Add(alert);
         await _db.SaveChangesAsync(cancellationToken);
 
         var dto = new ScanAlertDto(
-            alert.id_scan_alert,
-            alert.tipo_alerta,
-            alert.fecha_alerta ?? DateTime.UtcNow,
-            alert.id_scan,
-            alert.id_ticket,
-            alert.id_staff,
-            alert.detalle,
-            alert.qr_token,
-            alert.dispositivo);
+            alert.IdScanAlert,
+            alert.TipoAlerta,
+            alert.FechaAlerta ?? DateTime.UtcNow,
+            alert.IdScan,
+            alert.IdTicket,
+            alert.IdStaff,
+            alert.Detalle,
+            alert.QrToken,
+            alert.Dispositivo);
 
         return Ok(ServiceResponse<ScanAlertDto>.Ok(dto));
     }

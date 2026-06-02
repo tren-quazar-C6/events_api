@@ -26,39 +26,37 @@ public class EmployeeAuthService
     {
         var hashedPassword = HashPassword(request.password);
 
-        var staff = await _db.STAFF
+        var staff = await _db.Staff
             .AsNoTracking()
-            .Where(s => s.email == request.email && s.password_hash == hashedPassword && s.activo == true)
+            .Where(s => s.Email == request.email && s.PasswordHash == hashedPassword && s.Activo == true)
             .Select(s => new
             {
-                s.id_staff,
-                s.nombre,
-                s.email,
-                RoleId = s.id_rol_staff,
-                RoleName = s.id_rol_staffNavigation.nombre_rol
+                s.IdStaff,
+                s.Nombre,
+                s.Email,
+                RoleId = s.IdRolStaff,
+                RoleName = s.IdRolStaffNavigation.NombreRol
             })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (staff is null)
-        {
             return null;
-        }
 
-        var permissions = await _db.ROLE_PERMISSIONs
+        var permissions = await _db.RolePermissions
             .AsNoTracking()
-            .Where(rp => rp.id_rol_staff == staff.RoleId && rp.active == true && rp.id_permissionNavigation.active == true)
-            .Select(rp => rp.id_permissionNavigation.code)
+            .Where(rp => rp.IdRolStaff == staff.RoleId && rp.Active == true && rp.IdPermissionNavigation.Active == true)
+            .Select(rp => rp.IdPermissionNavigation.Code)
             .Distinct()
             .ToListAsync(cancellationToken);
 
         var expiresAt = DateTime.UtcNow.AddHours(8);
-        var token = BuildJwtToken(staff.id_staff, staff.nombre, staff.email, staff.RoleName, permissions, expiresAt);
+        var token = BuildJwtToken(staff.IdStaff, staff.Nombre, staff.Email, staff.RoleName, permissions, expiresAt);
 
         return new EmployeeLoginResponse(
             token,
             expiresAt,
-            staff.id_staff,
-            staff.nombre,
+            staff.IdStaff,
+            staff.Nombre,
             staff.RoleName,
             permissions);
     }

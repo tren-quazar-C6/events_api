@@ -31,9 +31,7 @@ public class EmployeeAuthController : ControllerBase
     {
         var result = await _authService.LoginAsync(request, cancellationToken);
         if (result is null)
-        {
             return Unauthorized(ServiceResponse<EmployeeLoginResponse>.Fail("Credenciales inválidas."));
-        }
 
         return Ok(ServiceResponse<EmployeeLoginResponse>.Ok(result));
     }
@@ -49,39 +47,35 @@ public class EmployeeAuthController : ControllerBase
             ?? User.FindFirstValue("sub");
 
         if (!int.TryParse(idStaffClaim, out var idStaff))
-        {
             return Unauthorized(ServiceResponse<EmployeeMeDto>.Fail("Token inválido."));
-        }
 
-        var employee = await _db.STAFF
+        var employee = await _db.Staff
             .AsNoTracking()
-            .Where(s => s.id_staff == idStaff && s.activo == true)
+            .Where(s => s.IdStaff == idStaff && s.Activo == true)
             .Select(s => new
             {
-                s.id_staff,
-                s.nombre,
-                s.email,
-                RoleId = s.id_rol_staff,
-                RoleName = s.id_rol_staffNavigation.nombre_rol
+                s.IdStaff,
+                s.Nombre,
+                s.Email,
+                RoleId = s.IdRolStaff,
+                RoleName = s.IdRolStaffNavigation.NombreRol
             })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (employee is null)
-        {
             return NotFound(ServiceResponse<EmployeeMeDto>.Fail("Empleado no encontrado."));
-        }
 
-        var permissions = await _db.ROLE_PERMISSIONs
+        var permissions = await _db.RolePermissions
             .AsNoTracking()
-            .Where(rp => rp.id_rol_staff == employee.RoleId && rp.active == true)
-            .Select(rp => rp.id_permissionNavigation.code)
+            .Where(rp => rp.IdRolStaff == employee.RoleId && rp.Active == true)
+            .Select(rp => rp.IdPermissionNavigation.Code)
             .Distinct()
             .ToListAsync(cancellationToken);
 
         var dto = new EmployeeMeDto(
-            employee.id_staff,
-            employee.nombre,
-            employee.email,
+            employee.IdStaff,
+            employee.Nombre,
+            employee.Email,
             employee.RoleName,
             permissions);
 

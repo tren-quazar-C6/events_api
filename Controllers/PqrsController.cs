@@ -20,14 +20,6 @@ public class PqrsController : ControllerBase
         "SUGERENCIA",
     };
 
-    private static readonly HashSet<string> AllowedStates = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "ABIERTO",
-        "EN_PROCESO",
-        "RESPONDIDO",
-        "CERRADO",
-    };
-
     private readonly QuasarDbContext _db;
 
     public PqrsController(QuasarDbContext db)
@@ -42,36 +34,36 @@ public class PqrsController : ControllerBase
         [FromQuery] int? id_usuario,
         CancellationToken cancellationToken = default)
     {
-        var query = _db.PQRs
+        var query = _db.Pqrs
             .AsNoTracking()
-            .Include(p => p.id_usuarioNavigation)
-            .Include(p => p.asignado_staffNavigation)
-            .Include(p => p.PQRS_MENSAJEs)
+            .Include(p => p.IdUsuarioNavigation)
+            .Include(p => p.AsignadoStaffNavigation)
+            .Include(p => p.PqrsMensajes)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(estado))
-            query = query.Where(p => p.estado == estado);
+            query = query.Where(p => p.Estado == estado);
 
         if (!string.IsNullOrWhiteSpace(tipo))
-            query = query.Where(p => p.tipo == NormalizeType(tipo));
+            query = query.Where(p => p.Tipo == NormalizeType(tipo));
 
         if (id_usuario is not null)
-            query = query.Where(p => p.id_usuario == id_usuario);
+            query = query.Where(p => p.IdUsuario == id_usuario);
 
         var pqrs = await query
-            .OrderByDescending(p => p.fecha_creacion)
+            .OrderByDescending(p => p.FechaCreacion)
             .Select(p => new PublicPqrsResumenDto(
-                p.id_pqrs,
-                p.id_usuario,
-                p.asignado_staff,
-                p.tipo,
-                p.asunto,
-                p.estado,
-                p.fecha_creacion,
-                p.fecha_ultima_respuesta,
-                p.id_usuarioNavigation.nombre,
-                p.asignado_staffNavigation != null ? p.asignado_staffNavigation.nombre : null,
-                p.PQRS_MENSAJEs.Count))
+                p.IdPqrs,
+                p.IdUsuario,
+                p.AsignadoStaff,
+                p.Tipo,
+                p.Asunto,
+                p.Estado,
+                p.FechaCreacion,
+                p.FechaUltimaRespuesta,
+                p.IdUsuarioNavigation.Nombre,
+                p.AsignadoStaffNavigation != null ? p.AsignadoStaffNavigation.Nombre : null,
+                p.PqrsMensajes.Count))
             .ToListAsync(cancellationToken);
 
         return Ok(ServiceResponse<IReadOnlyCollection<PublicPqrsResumenDto>>.Ok(pqrs));
@@ -94,9 +86,9 @@ public class PqrsController : ControllerBase
         [FromBody] PublicPqrsCreateRequest request,
         CancellationToken cancellationToken = default)
     {
-        var usuarioExiste = await _db.USUARIOs
+        var usuarioExiste = await _db.Usuarios
             .AsNoTracking()
-            .AnyAsync(u => u.id_usuario == request.id_usuario && u.activo == true, cancellationToken);
+            .AnyAsync(u => u.IdUsuario == request.id_usuario && u.Activo == true, cancellationToken);
 
         if (!usuarioExiste)
             return BadRequest(ServiceResponse<PublicPqrsDetalleDto>.Fail("El usuario no existe o está inactivo"));
@@ -110,34 +102,34 @@ public class PqrsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.mensaje))
             return BadRequest(ServiceResponse<PublicPqrsDetalleDto>.Fail("El mensaje es obligatorio"));
 
-        var pqr = new PQR
+        var pqr = new Pqr
         {
-            id_usuario = request.id_usuario,
-            tipo = NormalizeType(request.tipo),
-            asunto = request.asunto.Trim(),
-            estado = "ABIERTO",
-            fecha_creacion = DateTime.UtcNow,
+            IdUsuario = request.id_usuario,
+            Tipo = NormalizeType(request.tipo),
+            Asunto = request.asunto.Trim(),
+            Estado = "ABIERTO",
+            FechaCreacion = DateTime.UtcNow,
         };
 
-        _db.PQRs.Add(pqr);
+        _db.Pqrs.Add(pqr);
         await _db.SaveChangesAsync(cancellationToken);
 
-        _db.PQRS_MENSAJEs.Add(new PQRS_MENSAJE
+        _db.PqrsMensajes.Add(new PqrsMensaje
         {
-            id_pqrs = pqr.id_pqrs,
-            remitente = "USUARIO",
-            id_remitente = request.id_usuario,
-            mensaje = request.mensaje.Trim(),
-            fecha = DateTime.UtcNow,
+            IdPqrs = pqr.IdPqrs,
+            Remitente = "USUARIO",
+            IdRemitente = request.id_usuario,
+            Mensaje = request.mensaje.Trim(),
+            Fecha = DateTime.UtcNow,
         });
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        var dto = await BuildDetalleDtoAsync(pqr.id_pqrs, cancellationToken);
+        var dto = await BuildDetalleDtoAsync(pqr.IdPqrs, cancellationToken);
 
         return CreatedAtAction(
             nameof(GetPqrs),
-            new { id = pqr.id_pqrs },
+            new { id = pqr.IdPqrs },
             ServiceResponse<PublicPqrsDetalleDto>.Ok(dto!));
     }
 
@@ -150,35 +142,35 @@ public class PqrsController : ControllerBase
 
     private async Task<PublicPqrsDetalleDto?> BuildDetalleDtoAsync(int id, CancellationToken cancellationToken)
     {
-        var pqr = await _db.PQRs
+        var pqr = await _db.Pqrs
             .AsNoTracking()
-            .Include(p => p.id_usuarioNavigation)
-            .Include(p => p.asignado_staffNavigation)
-            .Include(p => p.PQRS_MENSAJEs)
-            .FirstOrDefaultAsync(p => p.id_pqrs == id, cancellationToken);
+            .Include(p => p.IdUsuarioNavigation)
+            .Include(p => p.AsignadoStaffNavigation)
+            .Include(p => p.PqrsMensajes)
+            .FirstOrDefaultAsync(p => p.IdPqrs == id, cancellationToken);
 
         if (pqr is null)
             return null;
 
         return new PublicPqrsDetalleDto(
-            pqr.id_pqrs,
-            pqr.id_usuario,
-            pqr.asignado_staff,
-            pqr.tipo,
-            pqr.asunto,
-            pqr.estado,
-            pqr.fecha_creacion,
-            pqr.fecha_ultima_respuesta,
-            pqr.id_usuarioNavigation.nombre,
-            pqr.asignado_staffNavigation?.nombre,
-            pqr.PQRS_MENSAJEs
-                .OrderBy(m => m.fecha)
+            pqr.IdPqrs,
+            pqr.IdUsuario,
+            pqr.AsignadoStaff,
+            pqr.Tipo,
+            pqr.Asunto,
+            pqr.Estado,
+            pqr.FechaCreacion,
+            pqr.FechaUltimaRespuesta,
+            pqr.IdUsuarioNavigation.Nombre,
+            pqr.AsignadoStaffNavigation?.Nombre,
+            pqr.PqrsMensajes
+                .OrderBy(m => m.Fecha)
                 .Select(m => new PublicPqrsMensajeDto(
-                    m.id_mensaje,
-                    m.remitente,
-                    m.id_remitente,
-                    m.mensaje,
-                    m.fecha))
+                    m.IdMensaje,
+                    m.Remitente,
+                    m.IdRemitente,
+                    m.Mensaje,
+                    m.Fecha))
                 .ToList());
     }
 }

@@ -1,16 +1,16 @@
 ﻿namespace events_api.Entities;
 
-public partial class ROLE_PERMISSION
+public partial class RolePermission
 {
-    public int id_role_permission { get; set; }
+    public int IdRolePermission { get; set; }
 
-    public int id_rol_staff { get; set; }
+    public int IdRolStaff { get; set; }
 
-    public int id_permission { get; set; }
+    public int IdPermission { get; set; }
 
-    public bool? active { get; set; }
+    public bool? Active { get; set; }
 
-    public virtual ROL_STAFF id_rol_staffNavigation { get; set; } = null!;
+    public virtual RolStaff IdRolStaffNavigation { get; set; } = null!;
 
-    public virtual PERMISSION id_permissionNavigation { get; set; } = null!;
+    public virtual Permission IdPermissionNavigation { get; set; } = null!;
 }

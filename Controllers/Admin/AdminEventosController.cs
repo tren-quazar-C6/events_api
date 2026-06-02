@@ -29,40 +29,40 @@ public class AdminEventosController : ControllerBase
         [FromQuery] string? status,
         CancellationToken cancellationToken = default)
     {
-        var query = _db.EVENTOs
+        var query = _db.Eventos
             .AsNoTracking()
-            .Where(e => e.activo == true);
+            .Where(e => e.Activo == true);
 
         if (id_tipo_evento is not null)
-            query = query.Where(e => e.id_tipo_evento == id_tipo_evento);
+            query = query.Where(e => e.IdTipoEvento == id_tipo_evento);
 
         if (!string.IsNullOrWhiteSpace(busqueda))
             query = query.Where(e =>
-                e.nombre_evento.Contains(busqueda) ||
-                (e.descripcion != null && e.descripcion.Contains(busqueda)));
+                e.NombreEvento.Contains(busqueda) ||
+                (e.Descripcion != null && e.Descripcion.Contains(busqueda)));
 
         query = status switch
         {
-            "DRAFT"     => query.Where(e => e.publicado == false && e.fecha_cancelacion == null),
-            "PUBLISHED" => query.Where(e => e.publicado == true  && e.fecha_cancelacion == null),
-            "CANCELLED" => query.Where(e => e.fecha_cancelacion != null),
+            "DRAFT"     => query.Where(e => e.Publicado == false && e.FechaCancelacion == null),
+            "PUBLISHED" => query.Where(e => e.Publicado == true  && e.FechaCancelacion == null),
+            "CANCELLED" => query.Where(e => e.FechaCancelacion != null),
             _           => query
         };
 
         var eventos = await query
-            .OrderByDescending(e => e.fecha_creacion)
+            .OrderByDescending(e => e.FechaCreacion)
             .Select(e => new AdminEventoResumenDto(
-                e.id_evento,
-                e.nombre_evento,
-                e.fecha_evento,
-                e.fecha_inicio_ventas,
-                e.fecha_fin_ventas,
-                e.capacidad_total,
-                e.id_tipo_eventoNavigation.nombre_tipo,
-                e.ruta_url,
-                e.fecha_cancelacion != null ? "CANCELLED" :
-                e.publicado == true ? "PUBLISHED" : "DRAFT",
-                e.EVENTO_ZONAs.Count(ez => ez.activo == true)))
+                e.IdEvento,
+                e.NombreEvento,
+                e.FechaEvento,
+                e.FechaInicioVentas,
+                e.FechaFinVentas,
+                e.CapacidadTotal,
+                e.IdTipoEventoNavigation.NombreTipo,
+                e.RutaUrl,
+                e.FechaCreacion != null ? "CANCELLED" :
+                e.Publicado == true ? "PUBLISHED" : "DRAFT",
+                e.EventoZonas.Count(ez => ez.Activo == true)))
             .ToListAsync(cancellationToken);
 
         return Ok(ServiceResponse<IReadOnlyCollection<AdminEventoResumenDto>>.Ok(eventos));
@@ -87,16 +87,16 @@ public class AdminEventosController : ControllerBase
         [FromBody] CreateEventoRequest request,
         CancellationToken cancellationToken = default)
     {
-        var tipoExiste = await _db.TIPO_EVENTOs
-            .AnyAsync(t => t.id_tipo_evento == request.id_tipo_evento && t.activo == true,
+        var tipoExiste = await _db.TipoEventos
+            .AnyAsync(t => t.IdTipoEvento == request.id_tipo_evento && t.Activo == true,
                 cancellationToken);
 
         if (!tipoExiste)
             return BadRequest(ServiceResponse<AdminEventoDetalleDto>
                 .Fail("El tipo de evento no existe o está inactivo"));
 
-        var staffExiste = await _db.STAFF
-            .AnyAsync(s => s.id_staff == request.creado_por_staff && s.activo == true,
+        var staffExiste = await _db.Staff
+            .AnyAsync(s => s.IdStaff == request.creado_por_staff && s.Activo == true,
                 cancellationToken);
 
         if (!staffExiste)
@@ -115,31 +115,31 @@ public class AdminEventosController : ControllerBase
             return BadRequest(ServiceResponse<AdminEventoDetalleDto>
                 .Fail("Las ventas deben cerrar antes de la fecha del evento"));
 
-        var evento = new EVENTO
+        var evento = new Evento
         {
-            id_tipo_evento      = request.id_tipo_evento,
-            creado_por_staff    = request.creado_por_staff,
-            nombre_evento       = request.nombre_evento,
-            descripcion         = request.descripcion,
-            fecha_evento        = request.fecha_evento,
-            fecha_inicio_ventas = request.fecha_inicio_ventas,
-            fecha_fin_ventas    = request.fecha_fin_ventas,
-            capacidad_total     = request.capacidad_total,
-            ruta_url            = request.ruta_url,
-            publicado           = true,
-            activo              = true,
-            fecha_creacion      = DateTime.UtcNow
+            IdTipoEvento      = request.id_tipo_evento,
+            CreadoPorStaff    = request.creado_por_staff,
+            NombreEvento       = request.nombre_evento,
+            Descripcion         = request.descripcion,
+            FechaEvento        = request.fecha_evento,
+            FechaInicioVentas = request.fecha_inicio_ventas,
+            FechaFinVentas    = request.fecha_fin_ventas,
+            CapacidadTotal     = request.capacidad_total,
+            RutaUrl            = request.ruta_url,
+            Publicado           = true,
+            Activo              = true,
+            FechaCreacion      = DateTime.UtcNow
         };
 
-        _db.EVENTOs.Add(evento);
+        _db.Eventos.Add(evento);
 
         if (request.zonas?.Any() == true)
         {
             var id_zonas = request.zonas.Select(z => z.id_zona).ToList();
 
-            var zonasExistentes = await _db.ZONAs
-                .Where(z => id_zonas.Contains(z.id_zona) && z.activo == true)
-                .Select(z => z.id_zona)
+            var zonasExistentes = await _db.Zonas
+                .Where(z => id_zonas.Contains(z.IdZona) && z.Activo == true)
+                .Select(z => z.IdZona)
                 .ToListAsync(cancellationToken);
 
             var zonasNoEncontradas = id_zonas.Except(zonasExistentes).ToList();
@@ -147,30 +147,30 @@ public class AdminEventosController : ControllerBase
                 return BadRequest(ServiceResponse<AdminEventoDetalleDto>
                     .Fail($"Zonas no encontradas: {string.Join(", ", zonasNoEncontradas)}"));
 
-            var asientosPorZona = await _db.ASIENTOs
-                .Where(a => id_zonas.Contains(a.id_zona) && a.activo == true)
-                .GroupBy(a => a.id_zona)
+            var asientosPorZona = await _db.Asientos
+                .Where(a => id_zonas.Contains(a.IdZona) && a.Activo == true)
+                .GroupBy(a => a.IdZona)
                 .ToDictionaryAsync(g => g.Key, g => g.ToList(), cancellationToken);
 
             foreach (var zonaReq in request.zonas)
             {
-                evento.EVENTO_ZONAs.Add(new EVENTO_ZONA
+                evento.EventoZonas.Add(new EventoZona
                 {
-                    id_zona        = zonaReq.id_zona,
-                    precio         = zonaReq.precio,
-                    cargo_servicio = zonaReq.cargo_servicio,
-                    capacidad      = zonaReq.capacidad,
-                    activo         = true
+                    IdZona        = zonaReq.id_zona,
+                    Precio         = zonaReq.precio,
+                    CargoServicio = zonaReq.cargo_servicio,
+                    Capacidad      = zonaReq.capacidad,
+                    Activo         = true
                 });
 
                 if (asientosPorZona.TryGetValue(zonaReq.id_zona, out var asientos))
                 {
                     foreach (var asiento in asientos.Take(zonaReq.capacidad))
                     {
-                        evento.EVENTO_ASIENTOs.Add(new EVENTO_ASIENTO
+                        evento.EventoAsientos.Add(new EventoAsiento
                         {
-                            id_asiento = asiento.id_asiento,
-                            estado     = "DISPONIBLE"
+                            IdAsiento = asiento.IdAsiento,
+                            Estado     = "DISPONIBLE"
                         });
                     }
                 }
@@ -183,14 +183,14 @@ public class AdminEventosController : ControllerBase
             id_staff: request.creado_por_staff,
             accion: "CREATE",
             tabla: "EVENTOS",
-            id_registro: evento.id_evento,
-            detalle: new { evento.nombre_evento, evento.fecha_evento },
+            id_registro: evento.IdEvento,
+            detalle: new { evento.NombreEvento, evento.FechaEvento },
             cancellationToken);
 
-        var dto = await BuildDetalleDtoAsync(evento.id_evento, cancellationToken);
+        var dto = await BuildDetalleDtoAsync(evento.IdEvento, cancellationToken);
         return CreatedAtAction(
             nameof(GetEvento),
-            new { id = evento.id_evento },
+            new { id = evento.IdEvento },
             ServiceResponse<AdminEventoDetalleDto>.Ok(dto!));
     }
 
@@ -201,42 +201,42 @@ public class AdminEventosController : ControllerBase
         [FromBody] UpdateEventoRequest request,
         CancellationToken cancellationToken = default)
     {
-        var evento = await _db.EVENTOs
-            .FirstOrDefaultAsync(e => e.id_evento == id && e.activo == true, cancellationToken);
+        var evento = await _db.Eventos
+            .FirstOrDefaultAsync(e => e.IdEvento == id && e.Activo == true, cancellationToken);
 
         if (evento is null)
             return NotFound(ServiceResponse<object>.Fail("Evento no encontrado"));
 
-        if (evento.fecha_cancelacion is not null)
+        if (evento.FechaCancelacion is not null)
             return BadRequest(ServiceResponse<object>.Fail("No se puede editar un evento cancelado"));
 
         if (request.id_tipo_evento is not null)
         {
-            var tipoExiste = await _db.TIPO_EVENTOs
-                .AnyAsync(t => t.id_tipo_evento == request.id_tipo_evento && t.activo == true,
+            var tipoExiste = await _db.TipoEventos
+                .AnyAsync(t => t.IdTipoEvento == request.id_tipo_evento && t.Activo == true,
                     cancellationToken);
 
             if (!tipoExiste)
                 return BadRequest(ServiceResponse<object>.Fail("El tipo de evento no existe"));
 
-            evento.id_tipo_evento = request.id_tipo_evento.Value;
+            evento.IdTipoEvento = request.id_tipo_evento.Value;
         }
 
-        if (request.nombre_evento       is not null) evento.nombre_evento       = request.nombre_evento;
-        if (request.descripcion         is not null) evento.descripcion         = request.descripcion;
-        if (request.fecha_evento        is not null) evento.fecha_evento        = request.fecha_evento.Value;
-        if (request.fecha_inicio_ventas is not null) evento.fecha_inicio_ventas = request.fecha_inicio_ventas.Value;
-        if (request.fecha_fin_ventas    is not null) evento.fecha_fin_ventas    = request.fecha_fin_ventas.Value;
-        if (request.capacidad_total     is not null) evento.capacidad_total     = request.capacidad_total.Value;
-        if (request.ruta_url            is not null) evento.ruta_url            = request.ruta_url;
+        if (request.nombre_evento       is not null) evento.NombreEvento       = request.nombre_evento;
+        if (request.descripcion         is not null) evento.Descripcion         = request.descripcion;
+        if (request.fecha_evento        is not null) evento.FechaEvento        = request.fecha_evento.Value;
+        if (request.fecha_inicio_ventas is not null) evento.FechaInicioVentas = request.fecha_inicio_ventas.Value;
+        if (request.fecha_fin_ventas    is not null) evento.FechaFinVentas    = request.fecha_fin_ventas.Value;
+        if (request.capacidad_total     is not null) evento.CapacidadTotal     = request.capacidad_total.Value;
+        if (request.ruta_url            is not null) evento.RutaUrl            = request.ruta_url;
 
         await _db.SaveChangesAsync(cancellationToken);
 
         await RegistrarAuditoriaAsync(
-            id_staff: evento.creado_por_staff,
+            id_staff: evento.CreadoPorStaff,
             accion: "UPDATE",
             tabla: "EVENTOS",
-            id_registro: evento.id_evento,
+            id_registro: evento.IdEvento,
             detalle: new { campos_actualizados = request },
             cancellationToken);
 
@@ -249,28 +249,28 @@ public class AdminEventosController : ControllerBase
         int id,
         CancellationToken cancellationToken = default)
     {
-        var evento = await _db.EVENTOs
-            .FirstOrDefaultAsync(e => e.id_evento == id && e.activo == true, cancellationToken);
+        var evento = await _db.Eventos
+            .FirstOrDefaultAsync(e => e.IdEvento == id && e.Activo == true, cancellationToken);
 
         if (evento is null)
             return NotFound(ServiceResponse<object>.Fail("Evento no encontrado"));
 
-        var tieneVendidos = await _db.EVENTO_ASIENTOs
-            .AnyAsync(ea => ea.id_evento == id && ea.estado == "VENDIDO", cancellationToken);
+        var tieneVendidos = await _db.EventoAsientos
+            .AnyAsync(ea => ea.IdEvento == id && ea.Estado == "VENDIDO", cancellationToken);
 
         if (tieneVendidos)
             return BadRequest(ServiceResponse<object>.Fail(
                 "No se puede eliminar un evento con tickets vendidos. Use CANCELLED en su lugar."));
 
-        evento.activo = false;
+        evento.Activo = false;
         await _db.SaveChangesAsync(cancellationToken);
 
         await RegistrarAuditoriaAsync(
-            id_staff: evento.creado_por_staff,
+            id_staff: evento.CreadoPorStaff,
             accion: "DELETE",
             tabla: "EVENTOS",
-            id_registro: evento.id_evento,
-            detalle: new { evento.nombre_evento },
+            id_registro: evento.IdEvento,
+            detalle: new { evento.NombreEvento },
             cancellationToken);
 
         return Ok(ServiceResponse<object>.Ok("Evento eliminado"));
@@ -283,37 +283,37 @@ public class AdminEventosController : ControllerBase
         [FromBody] UpdateStatusRequest request,
         CancellationToken cancellationToken = default)
     {
-        var evento = await _db.EVENTOs
-            .FirstOrDefaultAsync(e => e.id_evento == id && e.activo == true, cancellationToken);
+        var evento = await _db.Eventos
+            .FirstOrDefaultAsync(e => e.IdEvento == id && e.Activo == true, cancellationToken);
 
         if (evento is null)
             return NotFound(ServiceResponse<object>.Fail("Evento no encontrado"));
 
-        if (evento.fecha_cancelacion is not null)
+        if (evento.FechaCancelacion is not null)
             return BadRequest(ServiceResponse<object>.Fail("El evento ya está cancelado"));
 
         switch (request.status)
         {
             case "DRAFT":
-                var tieneVendidos = await _db.EVENTO_ASIENTOs
-                    .AnyAsync(ea => ea.id_evento == id && ea.estado == "VENDIDO", cancellationToken);
+                var tieneVendidos = await _db.EventoAsientos
+                    .AnyAsync(ea => ea.IdEvento == id && ea.Estado == "VENDIDO", cancellationToken);
 
                 if (tieneVendidos)
                     return BadRequest(ServiceResponse<object>.Fail(
                         "No se puede volver a DRAFT: el evento ya tiene tickets vendidos"));
 
-                evento.publicado = false;
+                evento.Publicado = false;
                 break;
 
             case "PUBLISHED":
-                var tieneZonas = await _db.EVENTO_ZONAs
-                    .AnyAsync(ez => ez.id_evento == id && ez.activo == true, cancellationToken);
+                var tieneZonas = await _db.EventoZonas
+                    .AnyAsync(ez => ez.IdEvento == id && ez.Activo == true, cancellationToken);
 
                 if (!tieneZonas)
                     return BadRequest(ServiceResponse<object>.Fail(
                         "No se puede publicar: el evento no tiene zonas asignadas"));
 
-                evento.publicado = true;
+                evento.Publicado = true;
                 break;
 
             case "CANCELLED":
@@ -321,19 +321,19 @@ public class AdminEventosController : ControllerBase
                     return BadRequest(ServiceResponse<object>.Fail(
                         "Se requiere motivo_cancelacion para cancelar un evento"));
 
-                evento.fecha_cancelacion  = DateTime.UtcNow;
-                evento.motivo_cancelacion = request.motivo_cancelacion;
-                evento.publicado          = false;
+                evento.FechaCancelacion  = DateTime.UtcNow;
+                evento.MotivoCancelacion = request.motivo_cancelacion;
+                evento.Publicado          = false;
 
-                var reservados = await _db.EVENTO_ASIENTOs
-                    .Where(ea => ea.id_evento == id && ea.estado == "RESERVADO")
+                var reservados = await _db.EventoAsientos
+                    .Where(ea => ea.IdEvento == id && ea.Estado == "RESERVADO")
                     .ToListAsync(cancellationToken);
 
                 foreach (var asiento in reservados)
                 {
-                    asiento.estado        = "DISPONIBLE";
-                    asiento.fecha_reserva  = null;
-                    asiento.reserva_expira = null;
+                    asiento.Estado        = "DISPONIBLE";
+                    asiento.FechaReserva  = null;
+                    asiento.ReservaExpira = null;
                 }
                 break;
         }
@@ -341,10 +341,10 @@ public class AdminEventosController : ControllerBase
         await _db.SaveChangesAsync(cancellationToken);
 
         await RegistrarAuditoriaAsync(
-            id_staff: evento.creado_por_staff,
+            id_staff: evento.CreadoPorStaff,
             accion: $"STATUS_{request.status}",
             tabla: "EVENTOS",
-            id_registro: evento.id_evento,
+            id_registro: evento.IdEvento,
             detalle: new { nuevo_status = request.status, request.motivo_cancelacion },
             cancellationToken);
 
@@ -358,16 +358,16 @@ public class AdminEventosController : ControllerBase
         [FromBody] UpdatePricingRequest request,
         CancellationToken cancellationToken = default)
     {
-        var eventoExiste = await _db.EVENTOs
-            .AnyAsync(e => e.id_evento == id && e.activo == true, cancellationToken);
+        var eventoExiste = await _db.Eventos
+            .AnyAsync(e => e.IdEvento == id && e.Activo == true, cancellationToken);
 
         if (!eventoExiste)
             return NotFound(ServiceResponse<object>.Fail("Evento no encontrado"));
 
         var id_zonas = request.zonas.Select(z => z.id_zona).ToList();
 
-        var eventoZonas = await _db.EVENTO_ZONAs
-            .Where(ez => ez.id_evento == id && id_zonas.Contains(ez.id_zona) && ez.activo == true)
+        var eventoZonas = await _db.EventoZonas
+            .Where(ez => ez.IdEvento == id && id_zonas.Contains(ez.IdZona) && ez.Activo == true)
             .ToListAsync(cancellationToken);
 
         if (!eventoZonas.Any())
@@ -376,12 +376,12 @@ public class AdminEventosController : ControllerBase
 
         foreach (var zonaUpdate in request.zonas)
         {
-            var eventoZona = eventoZonas.FirstOrDefault(ez => ez.id_zona == zonaUpdate.id_zona);
+            var eventoZona = eventoZonas.FirstOrDefault(ez => ez.IdZona == zonaUpdate.id_zona);
             if (eventoZona is null) continue;
 
-            eventoZona.precio = zonaUpdate.nuevo_precio;
+            eventoZona.Precio = zonaUpdate.nuevo_precio;
             if (zonaUpdate.nuevo_cargo_servicio is not null)
-                eventoZona.cargo_servicio = zonaUpdate.nuevo_cargo_servicio;
+                eventoZona.CargoServicio = zonaUpdate.nuevo_cargo_servicio;
         }
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -395,40 +395,40 @@ public class AdminEventosController : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
-        return await _db.EVENTOs
+        return await _db.Eventos
             .AsNoTracking()
-            .Where(e => e.id_evento == id && e.activo == true)
+            .Where(e => e.IdEvento == id && e.Activo == true)
             .Select(e => new AdminEventoDetalleDto(
-                e.id_evento,
-                e.nombre_evento,
-                e.descripcion,
-                e.fecha_evento,
-                e.fecha_inicio_ventas,
-                e.fecha_fin_ventas,
-                e.fecha_creacion,
-                e.capacidad_total,
-                e.id_tipo_evento,
-                e.id_tipo_eventoNavigation.nombre_tipo,
-                e.fecha_cancelacion != null ? "CANCELLED" :
-                e.publicado == true  ? "PUBLISHED" : "DRAFT",
-                e.fecha_cancelacion,
-                e.motivo_cancelacion,
-                e.ruta_url,
-                e.EVENTO_ZONAs
-                    .Where(ez => ez.activo == true)
+                e.IdEvento,
+                e.NombreEvento,
+                e.Descripcion,
+                e.FechaEvento,
+                e.FechaInicioVentas,
+                e.FechaFinVentas,
+                e.FechaCreacion,
+                e.CapacidadTotal,
+                e.IdTipoEvento,
+                e.IdTipoEventoNavigation.NombreTipo,
+                e.FechaCancelacion != null ? "CANCELLED" :
+                e.Publicado == true  ? "PUBLISHED" : "DRAFT",
+                e.FechaCancelacion,
+                e.MotivoCancelacion,
+                e.RutaUrl,
+                e.EventoZonas
+                    .Where(ez => ez.Activo == true)
                     .Select(ez => new EventoZonaDto(
-                        ez.id_evento_zona,
-                        ez.id_zona,
-                        ez.id_zonaNavigation.nombre_zona,
-                        ez.id_zonaNavigation.color_hex,
-                        ez.precio,
-                        ez.cargo_servicio ?? 0,
-                        ez.capacidad,
-                        ez.activo ?? true))
+                        ez.IdEventoZona,
+                        ez.IdZona,
+                        ez.IdZonaNavigation.NombreZona,
+                        ez.IdZonaNavigation.ColorHex,
+                        ez.Precio,
+                        ez.CargoServicio ?? 0,
+                        ez.Capacidad,
+                        ez.Activo ?? true))
                     .ToList(),
-                e.EVENTO_ASIENTOs.Count(ea => ea.estado == "DISPONIBLE"),
-                e.EVENTO_ASIENTOs.Count(ea => ea.estado == "RESERVADO"),
-                e.EVENTO_ASIENTOs.Count(ea => ea.estado == "VENDIDO")))
+                e.EventoAsientos.Count(ea => ea.Estado == "DISPONIBLE"),
+                e.EventoAsientos.Count(ea => ea.Estado == "RESERVADO"),
+                e.EventoAsientos.Count(ea => ea.Estado == "VENDIDO")))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -442,14 +442,14 @@ public class AdminEventosController : ControllerBase
     {
         try
         {
-            _db.AUDITORIAs.Add(new AUDITORIum
+            _db.Auditoria.Add(new Auditorium
             {
-                id_staff             = id_staff,
-                accion               = accion,
-                tabla_afectada       = tabla,
-                id_registro_afectado = id_registro,
-                detalle              = JsonSerializer.Serialize(detalle),
-                fecha                = DateTime.UtcNow
+                IdStaff             = id_staff,
+                Accion               = accion,
+                TablaAfectada       = tabla,
+                IdRegistroAfectado = id_registro,
+                Detalle              = JsonSerializer.Serialize(detalle),
+                Fecha                = DateTime.UtcNow
             });
 
             await _db.SaveChangesAsync(cancellationToken);

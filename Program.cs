@@ -1,6 +1,8 @@
 using events_api.Data;
+using events_api.Security;
 using events_api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -17,7 +19,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<MetricsService>();
+builder.Services.AddScoped<EmployeeAuthService>();
+builder.Services.AddScoped<SalesService>();
 builder.Services.AddScoped<ScanValidationService>();
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 builder.Services.AddCors(options =>
 {

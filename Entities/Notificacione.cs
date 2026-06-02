@@ -3,25 +3,25 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class NOTIFICACIONE
+public partial class Notificacione
 {
-    public int id_notificacion { get; set; }
+    public int IdNotificacion { get; set; }
 
-    public int id_usuario { get; set; }
+    public int IdUsuario { get; set; }
 
-    public string? tipo { get; set; }
+    public string? Tipo { get; set; }
 
-    public int? id_evento { get; set; }
+    public int? IdEvento { get; set; }
 
-    public string titulo { get; set; } = null!;
+    public string Titulo { get; set; } = null!;
 
-    public string mensaje { get; set; } = null!;
+    public string Mensaje { get; set; } = null!;
 
-    public bool? leido { get; set; }
+    public bool? Leido { get; set; }
 
-    public DateTime? fecha_envio { get; set; }
+    public DateTime? FechaEnvio { get; set; }
 
-    public virtual EVENTO? id_eventoNavigation { get; set; }
+    public virtual Evento? IdEventoNavigation { get; set; }
 
-    public virtual USUARIO id_usuarioNavigation { get; set; } = null!;
+    public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
 }
