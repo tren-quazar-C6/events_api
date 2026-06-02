@@ -20,20 +20,6 @@ public class AdminEventosController : ControllerBase
     {
         _db = db;
     }
-    /// <summary>
-    /// CRUD de eventos para el panel de administración.
-    /// 
-    /// Endpoints:
-    ///   GET    /api/admin/eventos              → listar todos (incluye DRAFTs)
-    ///   GET    /api/admin/eventos/{id}         → detalle
-    ///   POST   /api/admin/eventos              → crear (siempre en DRAFT)
-    ///   PUT    /api/admin/eventos/{id}         → editar campos básicos
-    ///   DELETE /api/admin/eventos/{id}         → soft delete
-    ///   PATCH  /api/admin/eventos/{id}/status  → cambiar status
-    ///   PATCH  /api/admin/eventos/{id}/pricing → actualizar precios de zonas
-    /// 
-    /// TODO: agregar [Authorize(Roles = "admin")] cuando esté el JWT
-    /// </summary>
 
     // GET /api/admin/eventos
     [HttpGet]
@@ -73,16 +59,7 @@ public class AdminEventosController : ControllerBase
                 e.fecha_fin_ventas,
                 e.capacidad_total,
                 e.id_tipo_eventoNavigation.nombre_tipo,
-                e.IMAGENEs
-                    .Where(i => i.principal == true && i.activo == true)
-                    .OrderBy(i => i.orden)
-                    .Select(i => i.ruta_url)
-                    .FirstOrDefault() ??
-                e.IMAGENEs
-                    .Where(i => i.activo == true)
-                    .OrderBy(i => i.orden)
-                    .Select(i => i.ruta_url)
-                    .FirstOrDefault(),
+                e.ruta_url,
                 e.fecha_cancelacion != null ? "CANCELLED" :
                 e.publicado == true ? "PUBLISHED" : "DRAFT",
                 e.EVENTO_ZONAs.Count(ez => ez.activo == true)))
@@ -110,7 +87,6 @@ public class AdminEventosController : ControllerBase
         [FromBody] CreateEventoRequest request,
         CancellationToken cancellationToken = default)
     {
-        // Validar tipo evento
         var tipoExiste = await _db.TIPO_EVENTOs
             .AnyAsync(t => t.id_tipo_evento == request.id_tipo_evento && t.activo == true,
                 cancellationToken);
@@ -119,7 +95,6 @@ public class AdminEventosController : ControllerBase
             return BadRequest(ServiceResponse<AdminEventoDetalleDto>
                 .Fail("El tipo de evento no existe o está inactivo"));
 
-        // Validar staff
         var staffExiste = await _db.STAFF
             .AnyAsync(s => s.id_staff == request.creado_por_staff && s.activo == true,
                 cancellationToken);
@@ -128,7 +103,6 @@ public class AdminEventosController : ControllerBase
             return BadRequest(ServiceResponse<AdminEventoDetalleDto>
                 .Fail("El staff no existe o está inactivo"));
 
-        // Validar fechas
         if (request.fecha_evento <= DateTime.Now)
             return BadRequest(ServiceResponse<AdminEventoDetalleDto>
                 .Fail("La fecha del evento debe ser futura"));
@@ -141,25 +115,24 @@ public class AdminEventosController : ControllerBase
             return BadRequest(ServiceResponse<AdminEventoDetalleDto>
                 .Fail("Las ventas deben cerrar antes de la fecha del evento"));
 
-        // Crear evento — siempre empieza en DRAFT (publicado = false)
         var evento = new EVENTO
         {
-            id_tipo_evento    = request.id_tipo_evento,
-            creado_por_staff  = request.creado_por_staff,
-            nombre_evento     = request.nombre_evento,
-            descripcion       = request.descripcion,
-            fecha_evento      = request.fecha_evento,
+            id_tipo_evento      = request.id_tipo_evento,
+            creado_por_staff    = request.creado_por_staff,
+            nombre_evento       = request.nombre_evento,
+            descripcion         = request.descripcion,
+            fecha_evento        = request.fecha_evento,
             fecha_inicio_ventas = request.fecha_inicio_ventas,
-            fecha_fin_ventas  = request.fecha_fin_ventas,
-            capacidad_total   = request.capacidad_total,
-            publicado         = true,
-            activo            = true,
-            fecha_creacion    = DateTime.UtcNow
+            fecha_fin_ventas    = request.fecha_fin_ventas,
+            capacidad_total     = request.capacidad_total,
+            ruta_url            = request.ruta_url,
+            publicado           = false,
+            activo              = true,
+            fecha_creacion      = DateTime.UtcNow
         };
 
         _db.EVENTOs.Add(evento);
 
-        // Crear zonas y asientos si vienen
         if (request.zonas?.Any() == true)
         {
             var id_zonas = request.zonas.Select(z => z.id_zona).ToList();
@@ -183,11 +156,11 @@ public class AdminEventosController : ControllerBase
             {
                 evento.EVENTO_ZONAs.Add(new EVENTO_ZONA
                 {
-                    id_zona       = zonaReq.id_zona,
-                    precio        = zonaReq.precio,
+                    id_zona        = zonaReq.id_zona,
+                    precio         = zonaReq.precio,
                     cargo_servicio = zonaReq.cargo_servicio,
-                    capacidad     = zonaReq.capacidad,
-                    activo        = true
+                    capacidad      = zonaReq.capacidad,
+                    activo         = true
                 });
 
                 if (asientosPorZona.TryGetValue(zonaReq.id_zona, out var asientos))
@@ -249,12 +222,13 @@ public class AdminEventosController : ControllerBase
             evento.id_tipo_evento = request.id_tipo_evento.Value;
         }
 
-        if (request.nombre_evento     is not null) evento.nombre_evento      = request.nombre_evento;
-        if (request.descripcion       is not null) evento.descripcion        = request.descripcion;
-        if (request.fecha_evento      is not null) evento.fecha_evento       = request.fecha_evento.Value;
+        if (request.nombre_evento       is not null) evento.nombre_evento       = request.nombre_evento;
+        if (request.descripcion         is not null) evento.descripcion         = request.descripcion;
+        if (request.fecha_evento        is not null) evento.fecha_evento        = request.fecha_evento.Value;
         if (request.fecha_inicio_ventas is not null) evento.fecha_inicio_ventas = request.fecha_inicio_ventas.Value;
-        if (request.fecha_fin_ventas  is not null) evento.fecha_fin_ventas   = request.fecha_fin_ventas.Value;
-        if (request.capacidad_total   is not null) evento.capacidad_total    = request.capacidad_total.Value;
+        if (request.fecha_fin_ventas    is not null) evento.fecha_fin_ventas    = request.fecha_fin_ventas.Value;
+        if (request.capacidad_total     is not null) evento.capacidad_total     = request.capacidad_total.Value;
+        if (request.ruta_url            is not null) evento.ruta_url            = request.ruta_url;
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -347,11 +321,10 @@ public class AdminEventosController : ControllerBase
                     return BadRequest(ServiceResponse<object>.Fail(
                         "Se requiere motivo_cancelacion para cancelar un evento"));
 
-                evento.fecha_cancelacion    = DateTime.UtcNow;
-                evento.motivo_cancelacion   = request.motivo_cancelacion;
-                evento.publicado            = false;
+                evento.fecha_cancelacion  = DateTime.UtcNow;
+                evento.motivo_cancelacion = request.motivo_cancelacion;
+                evento.publicado          = false;
 
-                // Liberar asientos reservados
                 var reservados = await _db.EVENTO_ASIENTOs
                     .Where(ea => ea.id_evento == id && ea.estado == "RESERVADO")
                     .ToListAsync(cancellationToken);
@@ -440,15 +413,7 @@ public class AdminEventosController : ControllerBase
                 e.publicado == true  ? "PUBLISHED" : "DRAFT",
                 e.fecha_cancelacion,
                 e.motivo_cancelacion,
-                e.IMAGENEs
-                    .Where(i => i.activo == true)
-                    .OrderByDescending(i => i.principal == true)
-                    .ThenBy(i => i.orden)
-                    .Select(i => new ImagenEventoDto(
-                        i.id_imagen,
-                        i.ruta_url,
-                        i.principal == true))
-                    .ToList(),
+                e.ruta_url,
                 e.EVENTO_ZONAs
                     .Where(ez => ez.activo == true)
                     .Select(ez => new EventoZonaDto(

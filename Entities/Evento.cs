@@ -32,6 +32,8 @@ public partial class EVENTO
     public DateTime? fecha_cancelacion { get; set; }
 
     public string? motivo_cancelacion { get; set; }
+    
+    public string? ruta_url { get; set; }
 
     public virtual ICollection<EVENTO_ASIENTO> EVENTO_ASIENTOs { get; set; } = new List<EVENTO_ASIENTO>();
 

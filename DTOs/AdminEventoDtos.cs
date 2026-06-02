@@ -14,7 +14,7 @@ public record AdminEventoDetalleDto(
     string status,
     DateTime? fecha_cancelacion,
     string? motivo_cancelacion,
-    IReadOnlyCollection<ImagenEventoDto> imagenes,
+    string? ruta_url,
     IReadOnlyCollection<EventoZonaDto> zonas,
     int asientos_disponibles,
     int asientos_reservados,
@@ -40,7 +40,7 @@ public record AdminEventoResumenDto(
     DateTime fecha_fin_ventas,
     int capacidad_total,
     string tipo_evento,
-    string? imagen_principal,
+    string ruta_url,
     string status,
     int total_zonas
 );

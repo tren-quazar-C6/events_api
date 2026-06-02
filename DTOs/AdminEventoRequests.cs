@@ -17,6 +17,8 @@ public record CreateEventoRequest(
     [Required] DateTime fecha_fin_ventas,
 
     [Range(1, 100000)] int capacidad_total,
+    
+    string? ruta_url,
 
     IReadOnlyCollection<EventoZonaRequest>? zonas
 );
@@ -40,7 +42,9 @@ public record UpdateEventoRequest(
     DateTime? fecha_fin_ventas,
 
     [Range(1, 100_000)]
-    int? capacidad_total
+    int? capacidad_total,
+    
+    string? ruta_url
 );
 
 public record UpdateStatusRequest(
