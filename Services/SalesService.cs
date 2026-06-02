@@ -184,7 +184,7 @@ public class SalesService
         var createdCodes = new List<string>();
         foreach (var idEventoAsiento in pendingSeats)
         {
-            var uniqueCode = $"TK-{Guid.NewGuid():N[..10].ToUpperInvariant()}";
+            var uniqueCode = "TK-" + Guid.NewGuid().ToString("N")[..10].ToUpperInvariant();
             var qrToken = $"QR-{Guid.NewGuid():N}";
 
             _db.Tickets.Add(new Ticket
