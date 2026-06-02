@@ -36,7 +36,7 @@ public class PqrsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ServiceResponse<IReadOnlyCollection<PqrsResumenDto>>>> GetPqrs(
+    public async Task<ActionResult<ServiceResponse<IReadOnlyCollection<PublicPqrsResumenDto>>>> GetPqrs(
         [FromQuery] string? estado,
         [FromQuery] string? tipo,
         [FromQuery] int? id_usuario,
@@ -60,7 +60,7 @@ public class PqrsController : ControllerBase
 
         var pqrs = await query
             .OrderByDescending(p => p.fecha_creacion)
-            .Select(p => new PqrsResumenDto(
+            .Select(p => new PublicPqrsResumenDto(
                 p.id_pqrs,
                 p.id_usuario,
                 p.asignado_staff,
@@ -74,24 +74,24 @@ public class PqrsController : ControllerBase
                 p.PQRS_MENSAJEs.Count))
             .ToListAsync(cancellationToken);
 
-        return Ok(ServiceResponse<IReadOnlyCollection<PqrsResumenDto>>.Ok(pqrs));
+        return Ok(ServiceResponse<IReadOnlyCollection<PublicPqrsResumenDto>>.Ok(pqrs));
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<ServiceResponse<PqrsDetalleDto>>> GetPqrs(
+    public async Task<ActionResult<ServiceResponse<PublicPqrsDetalleDto>>> GetPqrs(
         int id,
         CancellationToken cancellationToken = default)
     {
         var dto = await BuildDetalleDtoAsync(id, cancellationToken);
 
         return dto is null
-            ? NotFound(ServiceResponse<PqrsDetalleDto>.Fail("PQRS no encontrada"))
-            : Ok(ServiceResponse<PqrsDetalleDto>.Ok(dto));
+            ? NotFound(ServiceResponse<PublicPqrsDetalleDto>.Fail("PQRS no encontrada"))
+            : Ok(ServiceResponse<PublicPqrsDetalleDto>.Ok(dto));
     }
 
     [HttpPost]
-    public async Task<ActionResult<ServiceResponse<PqrsDetalleDto>>> CreatePqrs(
-        [FromBody] PqrsCreateRequest request,
+    public async Task<ActionResult<ServiceResponse<PublicPqrsDetalleDto>>> CreatePqrs(
+        [FromBody] PublicPqrsCreateRequest request,
         CancellationToken cancellationToken = default)
     {
         var usuarioExiste = await _db.USUARIOs
@@ -99,16 +99,16 @@ public class PqrsController : ControllerBase
             .AnyAsync(u => u.id_usuario == request.id_usuario && u.activo == true, cancellationToken);
 
         if (!usuarioExiste)
-            return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("El usuario no existe o está inactivo"));
+            return BadRequest(ServiceResponse<PublicPqrsDetalleDto>.Fail("El usuario no existe o está inactivo"));
 
         if (!AllowedTypes.Contains(request.tipo))
-            return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("Tipo de PQRS inválido"));
+            return BadRequest(ServiceResponse<PublicPqrsDetalleDto>.Fail("Tipo de PQRS inválido"));
 
         if (string.IsNullOrWhiteSpace(request.asunto) || request.asunto.Length > 255)
-            return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("El asunto es obligatorio y debe tener máximo 255 caracteres"));
+            return BadRequest(ServiceResponse<PublicPqrsDetalleDto>.Fail("El asunto es obligatorio y debe tener máximo 255 caracteres"));
 
         if (string.IsNullOrWhiteSpace(request.mensaje))
-            return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("El mensaje es obligatorio"));
+            return BadRequest(ServiceResponse<PublicPqrsDetalleDto>.Fail("El mensaje es obligatorio"));
 
         var pqr = new PQR
         {
@@ -138,7 +138,7 @@ public class PqrsController : ControllerBase
         return CreatedAtAction(
             nameof(GetPqrs),
             new { id = pqr.id_pqrs },
-            ServiceResponse<PqrsDetalleDto>.Ok(dto!));
+            ServiceResponse<PublicPqrsDetalleDto>.Ok(dto!));
     }
 
     private static string NormalizeType(string tipo)
@@ -148,7 +148,7 @@ public class PqrsController : ControllerBase
             : tipo.ToUpperInvariant();
     }
 
-    private async Task<PqrsDetalleDto?> BuildDetalleDtoAsync(int id, CancellationToken cancellationToken)
+    private async Task<PublicPqrsDetalleDto?> BuildDetalleDtoAsync(int id, CancellationToken cancellationToken)
     {
         var pqr = await _db.PQRs
             .AsNoTracking()
@@ -160,7 +160,7 @@ public class PqrsController : ControllerBase
         if (pqr is null)
             return null;
 
-        return new PqrsDetalleDto(
+        return new PublicPqrsDetalleDto(
             pqr.id_pqrs,
             pqr.id_usuario,
             pqr.asignado_staff,
@@ -173,7 +173,7 @@ public class PqrsController : ControllerBase
             pqr.asignado_staffNavigation?.nombre,
             pqr.PQRS_MENSAJEs
                 .OrderBy(m => m.fecha)
-                .Select(m => new PqrsMensajeDto(
+                .Select(m => new PublicPqrsMensajeDto(
                     m.id_mensaje,
                     m.remitente,
                     m.id_remitente,

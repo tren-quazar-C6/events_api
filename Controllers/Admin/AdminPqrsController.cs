@@ -27,7 +27,7 @@ public class AdminPqrsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ServiceResponse<IReadOnlyCollection<PqrsResumenDto>>>> GetPqrs(
+    public async Task<ActionResult<ServiceResponse<IReadOnlyCollection<AdminPqrsResumenDto>>>> GetPqrs(
         [FromQuery] string? estado,
         [FromQuery] string? tipo,
         CancellationToken cancellationToken = default)
@@ -47,39 +47,40 @@ public class AdminPqrsController : ControllerBase
 
         var pqrs = await query
             .OrderByDescending(p => p.fecha_creacion)
-            .Select(p => new PqrsResumenDto(
+            .Select(p => new AdminPqrsResumenDto(
                 p.id_pqrs,
-                p.id_usuario,
-                p.asignado_staff,
-                p.tipo,
                 p.asunto,
+                p.tipo,
                 p.estado,
+                p.id_usuario,
+                p.id_usuarioNavigation.nombre,
+                p.id_usuarioNavigation.email,
+                p.asignado_staff,
+                p.asignado_staffNavigation != null ? p.asignado_staffNavigation.nombre : null,
                 p.fecha_creacion,
                 p.fecha_ultima_respuesta,
-                p.id_usuarioNavigation.nombre,
-                p.asignado_staffNavigation != null ? p.asignado_staffNavigation.nombre : null,
                 p.PQRS_MENSAJEs.Count))
             .ToListAsync(cancellationToken);
 
-        return Ok(ServiceResponse<IReadOnlyCollection<PqrsResumenDto>>.Ok(pqrs));
+        return Ok(ServiceResponse<IReadOnlyCollection<AdminPqrsResumenDto>>.Ok(pqrs));
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<ServiceResponse<PqrsDetalleDto>>> GetPqrs(
+    public async Task<ActionResult<ServiceResponse<AdminPqrsDetalleDto>>> GetPqrs(
         int id,
         CancellationToken cancellationToken = default)
     {
         var dto = await BuildDetalleDtoAsync(id, cancellationToken);
 
         return dto is null
-            ? NotFound(ServiceResponse<PqrsDetalleDto>.Fail("PQRS no encontrada"))
-            : Ok(ServiceResponse<PqrsDetalleDto>.Ok(dto));
+            ? NotFound(ServiceResponse<AdminPqrsDetalleDto>.Fail("PQRS no encontrada"))
+            : Ok(ServiceResponse<AdminPqrsDetalleDto>.Ok(dto));
     }
 
     [HttpPatch("{id:int}")]
-    public async Task<ActionResult<ServiceResponse<PqrsDetalleDto>>> UpdatePqrs(
+    public async Task<ActionResult<ServiceResponse<AdminPqrsDetalleDto>>> UpdatePqrs(
         int id,
-        [FromBody] PqrsUpdateRequest request,
+        [FromBody] PublicPqrsUpdateRequest request,
         CancellationToken cancellationToken = default)
     {
         var pqr = await _db.PQRs
@@ -87,7 +88,7 @@ public class AdminPqrsController : ControllerBase
             .FirstOrDefaultAsync(p => p.id_pqrs == id, cancellationToken);
 
         if (pqr is null)
-            return NotFound(ServiceResponse<PqrsDetalleDto>.Fail("PQRS no encontrada"));
+            return NotFound(ServiceResponse<AdminPqrsDetalleDto>.Fail("PQRS no encontrada"));
 
         if (request.asignado_staff is not null)
         {
@@ -95,7 +96,7 @@ public class AdminPqrsController : ControllerBase
                 .AnyAsync(s => s.id_staff == request.asignado_staff && s.activo == true, cancellationToken);
 
             if (!staffExiste)
-                return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("El staff asignado no existe o está inactivo"));
+                return BadRequest(ServiceResponse<AdminPqrsDetalleDto>.Fail("El staff asignado no existe o está inactivo"));
 
             pqr.asignado_staff = request.asignado_staff;
         }
@@ -103,7 +104,7 @@ public class AdminPqrsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(request.estado))
         {
             if (!AllowedStates.Contains(request.estado))
-                return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("Estado de PQRS inválido"));
+                return BadRequest(ServiceResponse<AdminPqrsDetalleDto>.Fail("Estado de PQRS inválido"));
 
             pqr.estado = request.estado.ToUpperInvariant();
         }
@@ -113,7 +114,7 @@ public class AdminPqrsController : ControllerBase
             var remitenteStaff = request.id_staff ?? request.asignado_staff;
 
             if (remitenteStaff is null)
-                return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("Se requiere id_staff para registrar la respuesta"));
+                return BadRequest(ServiceResponse<AdminPqrsDetalleDto>.Fail("Se requiere id_staff para registrar la respuesta"));
 
             pqr.fecha_ultima_respuesta = DateTime.UtcNow;
             pqr.PQRS_MENSAJEs.Add(new PQRS_MENSAJE
@@ -129,7 +130,7 @@ public class AdminPqrsController : ControllerBase
         await _db.SaveChangesAsync(cancellationToken);
 
         var dto = await BuildDetalleDtoAsync(pqr.id_pqrs, cancellationToken);
-        return Ok(ServiceResponse<PqrsDetalleDto>.Ok(dto!));
+        return Ok(ServiceResponse<AdminPqrsDetalleDto>.Ok(dto!));
     }
 
     private static string NormalizeType(string tipo)
@@ -139,7 +140,7 @@ public class AdminPqrsController : ControllerBase
             : tipo.ToUpperInvariant();
     }
 
-    private async Task<PqrsDetalleDto?> BuildDetalleDtoAsync(int id, CancellationToken cancellationToken)
+    private async Task<AdminPqrsDetalleDto?> BuildDetalleDtoAsync(int id, CancellationToken cancellationToken)
     {
         var pqr = await _db.PQRs
             .AsNoTracking()
@@ -151,23 +152,27 @@ public class AdminPqrsController : ControllerBase
         if (pqr is null)
             return null;
 
-        return new PqrsDetalleDto(
+        return new AdminPqrsDetalleDto(
             pqr.id_pqrs,
-            pqr.id_usuario,
-            pqr.asignado_staff,
-            pqr.tipo,
             pqr.asunto,
+            pqr.tipo,
             pqr.estado,
+            pqr.id_usuario,
+            pqr.id_usuarioNavigation.nombre,
+            pqr.id_usuarioNavigation.email,
+            pqr.asignado_staff,
+            pqr.asignado_staffNavigation?.nombre,
             pqr.fecha_creacion,
             pqr.fecha_ultima_respuesta,
-            pqr.id_usuarioNavigation.nombre,
-            pqr.asignado_staffNavigation?.nombre,
             pqr.PQRS_MENSAJEs
                 .OrderBy(m => m.fecha)
-                .Select(m => new PqrsMensajeDto(
+                .Select(m => new AdminPqrsMensajeDto(
                     m.id_mensaje,
                     m.remitente,
                     m.id_remitente,
+                    m.remitente == "STAFF"
+                        ? (pqr.asignado_staffNavigation != null ? pqr.asignado_staffNavigation.nombre : "STAFF")
+                        : pqr.id_usuarioNavigation.nombre,
                     m.mensaje,
                     m.fecha))
                 .ToList());

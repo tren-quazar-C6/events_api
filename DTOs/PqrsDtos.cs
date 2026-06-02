@@ -1,25 +1,25 @@
 namespace events_api.DTOs;
 
-public record PqrsCreateRequest(
+public record PublicPqrsCreateRequest(
     int id_usuario,
     string tipo,
     string asunto,
     string mensaje);
 
-public record PqrsUpdateRequest(
+public record PublicPqrsUpdateRequest(
     int? asignado_staff,
     string? estado,
     string? mensaje,
     int? id_staff);
 
-public record PqrsMensajeDto(
+public record PublicPqrsMensajeDto(
     int id_mensaje,
     string remitente,
     int id_remitente,
     string mensaje,
     DateTime? fecha);
 
-public record PqrsResumenDto(
+public record PublicPqrsResumenDto(
     int id_pqrs,
     int id_usuario,
     int? asignado_staff,
@@ -32,7 +32,7 @@ public record PqrsResumenDto(
     string? staff_nombre,
     int total_mensajes);
 
-public record PqrsDetalleDto(
+public record PublicPqrsDetalleDto(
     int id_pqrs,
     int id_usuario,
     int? asignado_staff,
@@ -43,4 +43,4 @@ public record PqrsDetalleDto(
     DateTime? fecha_ultima_respuesta,
     string usuario_nombre,
     string? staff_nombre,
-    IReadOnlyCollection<PqrsMensajeDto> mensajes);
+    IReadOnlyCollection<PublicPqrsMensajeDto> mensajes);

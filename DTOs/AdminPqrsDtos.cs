@@ -3,14 +3,16 @@
 /// <summary>
 /// Resumen de un PQRS para la lista del panel admin.
 /// </summary>
-public record PqrsResumenDto(
+public record AdminPqrsResumenDto(
     int id_pqrs,
-    string tipo,
     string asunto,
-    string estado,
-    string nombre_usuario,
-    string email_usuario,
-    string? nombre_staff_asignado,
+    string tipo,
+    string? estado,
+    int id_usuario,
+    string usuario_nombre,
+    string usuario_email,
+    int? id_staff_asignado,
+    string? staff_nombre_asignado,
     DateTime? fecha_creacion,
     DateTime? fecha_ultima_respuesta,
     int total_mensajes
@@ -19,31 +21,28 @@ public record PqrsResumenDto(
 /// <summary>
 /// Detalle completo de un PQRS con el hilo de mensajes.
 /// </summary>
-public record PqrsDetalleDto(
+public record AdminPqrsDetalleDto(
     int id_pqrs,
-    string tipo,
     string asunto,
-    string estado,
-    // Datos del usuario que creó el PQRS
+    string tipo,
+    string? estado,
     int id_usuario,
-    string nombre_usuario,
-    string email_usuario,
-    // Staff asignado (puede ser null)
+    string usuario_nombre,
+    string usuario_email,
     int? id_staff_asignado,
-    string? nombre_staff_asignado,
+    string? staff_nombre_asignado,
     DateTime? fecha_creacion,
     DateTime? fecha_ultima_respuesta,
-    // Hilo de mensajes ordenado por fecha
-    IReadOnlyCollection<PqrsMensajeDto> mensajes
+    IReadOnlyCollection<AdminPqrsMensajeDto> mensajes
 );
 
 /// <summary>
 /// Un mensaje dentro del hilo de un PQRS.
 /// Remitente puede ser "USUARIO" o "STAFF".
 /// </summary>
-public record PqrsMensajeDto(
+public record AdminPqrsMensajeDto(
     int id_mensaje,
-    string remitente,    // "USUARIO" o "STAFF"
+    string remitente,
     int id_remitente,
     string nombre_remitente,
     string mensaje,
