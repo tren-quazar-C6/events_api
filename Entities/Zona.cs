@@ -3,17 +3,17 @@ using System.Collections.Generic;
 
 namespace events_api.Entities;
 
-public partial class ZONA
+public partial class Zona
 {
-    public int id_zona { get; set; }
+    public int IdZona { get; set; }
 
-    public string nombre_zona { get; set; } = null!;
+    public string NombreZona { get; set; } = null!;
 
-    public string? color_hex { get; set; }
+    public string? ColorHex { get; set; }
 
-    public bool? activo { get; set; }
+    public bool? Activo { get; set; }
 
-    public virtual ICollection<ASIENTO> ASIENTOs { get; set; } = new List<ASIENTO>();
+    public virtual ICollection<Asiento> Asientos { get; set; } = new List<Asiento>();
 
-    public virtual ICollection<EVENTO_ZONA> EVENTO_ZONAs { get; set; } = new List<EVENTO_ZONA>();
+    public virtual ICollection<EventoZona> EventoZonas { get; set; } = new List<EventoZona>();
 }

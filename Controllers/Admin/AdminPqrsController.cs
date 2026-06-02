@@ -54,38 +54,38 @@ public class AdminPqrsController : ControllerBase
         [FromQuery] string? busqueda,
         CancellationToken cancellationToken = default)
     {
-        var query = _db.PQRs.AsNoTracking();
+        var query = _db.Pqrs.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(estado))
-            query = query.Where(p => p.estado == estado);
+            query = query.Where(p => p.Estado == estado);
 
         if (!string.IsNullOrWhiteSpace(tipo))
-            query = query.Where(p => p.tipo == tipo);
+            query = query.Where(p => p.Tipo == tipo);
 
         if (id_staff is not null)
-            query = query.Where(p => p.asignado_staff == id_staff);
+            query = query.Where(p => p.AsignadoStaff == id_staff);
 
         if (!string.IsNullOrWhiteSpace(busqueda))
             query = query.Where(p =>
-                p.asunto.Contains(busqueda) ||
-                p.id_usuarioNavigation.nombre.Contains(busqueda) ||
-                p.id_usuarioNavigation.email.Contains(busqueda));
+                p.Asunto.Contains(busqueda) ||
+                p.IdUsuarioNavigation.Nombre.Contains(busqueda) ||
+                p.IdUsuarioNavigation.Email.Contains(busqueda));
 
         var pqrs = await query
-            .OrderByDescending(p => p.fecha_creacion)
+            .OrderByDescending(p => p.FechaCreacion)
             .Select(p => new PqrsResumenDto(
-                p.id_pqrs,
-                p.tipo,
-                p.asunto,
-                p.estado ?? "ABIERTO",
-                p.id_usuarioNavigation.nombre,
-                p.id_usuarioNavigation.email,
-                p.asignado_staffNavigation != null
-                    ? p.asignado_staffNavigation.nombre
+                p.IdPqrs,
+                p.Tipo,
+                p.Asunto,
+                p.Estado ?? "ABIERTO",
+                p.IdUsuarioNavigation.Nombre,
+                p.IdUsuarioNavigation.Email,
+                p.AsignadoStaffNavigation != null
+                    ? p.AsignadoStaffNavigation.Nombre
                     : null,
-                p.fecha_creacion,
-                p.fecha_ultima_respuesta,
-                p.PQRS_MENSAJEs.Count))
+                p.FechaCreacion,
+                p.FechaUltimaRespuesta,
+                p.PqrsMensajes.Count))
             .ToListAsync(cancellationToken);
 
         return Ok(ServiceResponse<IReadOnlyCollection<PqrsResumenDto>>.Ok(pqrs));
@@ -106,41 +106,41 @@ public class AdminPqrsController : ControllerBase
         int id,
         CancellationToken cancellationToken = default)
     {
-        var pqrs = await _db.PQRs
+        var pqrs = await _db.Pqrs
             .AsNoTracking()
-            .Where(p => p.id_pqrs == id)
+            .Where(p => p.IdPqrs == id)
             .Select(p => new PqrsDetalleDto(
-                p.id_pqrs,
-                p.tipo,
-                p.asunto,
-                p.estado ?? "ABIERTO",
-                p.id_usuario,
-                p.id_usuarioNavigation.nombre,
-                p.id_usuarioNavigation.email,
-                p.asignado_staff,
-                p.asignado_staffNavigation != null
-                    ? p.asignado_staffNavigation.nombre
+                p.IdPqrs,
+                p.Tipo,
+                p.Asunto,
+                p.Estado ?? "ABIERTO",
+                p.IdUsuario,
+                p.IdUsuarioNavigation.Nombre,
+                p.IdUsuarioNavigation.Email,
+                p.AsignadoStaff,
+                p.AsignadoStaffNavigation != null
+                    ? p.AsignadoStaffNavigation.Nombre
                     : null,
-                p.fecha_creacion,
-                p.fecha_ultima_respuesta,
-                p.PQRS_MENSAJEs
-                    .OrderBy(m => m.fecha)
+                p.FechaCreacion,
+                p.FechaUltimaRespuesta,
+                p.PqrsMensajes
+                    .OrderBy(m => m.Fecha)
                     .Select(m => new PqrsMensajeDto(
-                        m.id_mensaje,
-                        m.remitente,
-                        m.id_remitente,
+                        m.IdMensaje,
+                        m.Remitente,
+                        m.IdRemitente,
                         // Nombre del remitente según si es usuario o staff
-                        m.remitente == "STAFF"
-                            ? _db.STAFF
-                                .Where(s => s.id_staff == m.id_remitente)
-                                .Select(s => s.nombre)
+                        m.Remitente == "STAFF"
+                            ? _db.Staff
+                                .Where(s => s.IdStaff == m.IdRemitente)
+                                .Select(s => s.Nombre)
                                 .FirstOrDefault() ?? "Staff"
-                            : _db.USUARIOs
-                                .Where(u => u.id_usuario == m.id_remitente)
-                                .Select(u => u.nombre)
+                            : _db.Usuarios
+                                .Where(u => u.IdUsuario == m.IdRemitente)
+                                .Select(u => u.Nombre)
                                 .FirstOrDefault() ?? "Usuario",
-                        m.mensaje,
-                        m.fecha))
+                        m.Mensaje,
+                        m.Fecha))
                     .ToList()))
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -168,13 +168,13 @@ public class AdminPqrsController : ControllerBase
         [FromBody] ResponderPqrsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var pqrs = await _db.PQRs
-            .FirstOrDefaultAsync(p => p.id_pqrs == id, cancellationToken);
+        var pqrs = await _db.Pqrs
+            .FirstOrDefaultAsync(p => p.IdPqrs == id, cancellationToken);
 
         if (pqrs is null)
             return NotFound(ServiceResponse<object>.Fail("PQRS no encontrado"));
 
-        if (pqrs.estado == "CERRADO")
+        if (pqrs.Estado == "CERRADO")
             return BadRequest(ServiceResponse<object>.Fail(
                 "No se puede responder un PQRS cerrado"));
 
@@ -186,21 +186,21 @@ public class AdminPqrsController : ControllerBase
         Console.WriteLine($"DEBUG - id_pqrs: {id}");
 
         // Agregar el mensaje
-        _db.PQRS_MENSAJEs.Add(new PQRS_MENSAJE
+        _db.PqrsMensajes.Add(new PqrsMensaje
         {
-            id_pqrs      = id,
-            remitente    = "STAFF",
-            id_remitente = idStaff,
-            mensaje      = request.mensaje,
-            fecha        = DateTime.UtcNow
+            IdPqrs      = id,
+            Remitente    = "STAFF",
+            IdRemitente = idStaff,
+            Mensaje      = request.mensaje,
+            Fecha        = DateTime.UtcNow
         });
         
         // Guardar solo el mensaje
         await _db.SaveChangesAsync(cancellationToken);
 
         // Actualizar el PQRS
-        pqrs.fecha_ultima_respuesta = DateTime.UtcNow;
-        pqrs.estado                 = "RESPONDIDO";
+        pqrs.FechaUltimaRespuesta = DateTime.UtcNow;
+        pqrs.Estado                 = "RESPONDIDO";
         
         
         await _db.SaveChangesAsync(cancellationToken);
@@ -225,17 +225,17 @@ public class AdminPqrsController : ControllerBase
         [FromBody] UpdatePqrsStatusRequest request,
         CancellationToken cancellationToken = default)
     {
-        var pqrs = await _db.PQRs
-            .FirstOrDefaultAsync(p => p.id_pqrs == id, cancellationToken);
+        var pqrs = await _db.Pqrs
+            .FirstOrDefaultAsync(p => p.IdPqrs == id, cancellationToken);
 
         if (pqrs is null)
             return NotFound(ServiceResponse<object>.Fail("PQRS no encontrado"));
 
-        if (pqrs.estado == "CERRADO")
+        if (pqrs.Estado == "CERRADO")
             return BadRequest(ServiceResponse<object>.Fail(
                 "Un PQRS cerrado no puede cambiar de estado"));
 
-        pqrs.estado = request.estado;
+        pqrs.Estado = request.estado;
         await _db.SaveChangesAsync(cancellationToken);
 
         return Ok(ServiceResponse<object>.Ok($"Estado actualizado a {request.estado}"));
@@ -255,30 +255,30 @@ public class AdminPqrsController : ControllerBase
         [FromBody] AsignarPqrsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var pqrs = await _db.PQRs
-            .FirstOrDefaultAsync(p => p.id_pqrs == id, cancellationToken);
+        var pqrs = await _db.Pqrs
+            .FirstOrDefaultAsync(p => p.IdPqrs == id, cancellationToken);
 
         if (pqrs is null)
             return NotFound(ServiceResponse<object>.Fail("PQRS no encontrado"));
 
-        if (pqrs.estado == "CERRADO")
+        if (pqrs.Estado == "CERRADO")
             return BadRequest(ServiceResponse<object>.Fail(
                 "No se puede reasignar un PQRS cerrado"));
 
         // Validar que el staff existe y está activo
-        var staffExiste = await _db.STAFF
-            .AnyAsync(s => s.id_staff == request.id_staff && s.activo == true,
+        var staffExiste = await _db.Staff
+            .AnyAsync(s => s.IdStaff == request.id_staff && s.Activo == true,
                 cancellationToken);
 
         if (!staffExiste)
             return BadRequest(ServiceResponse<object>.Fail(
                 "El staff no existe o está inactivo"));
 
-        pqrs.asignado_staff = request.id_staff;
+        pqrs.AsignadoStaff = request.id_staff;
 
         // Si estaba ABIERTO, pasa a EN_PROCESO al asignarse
-        if (pqrs.estado == "ABIERTO")
-            pqrs.estado = "EN_PROCESO";
+        if (pqrs.Estado == "ABIERTO")
+            pqrs.Estado = "EN_PROCESO";
 
         await _db.SaveChangesAsync(cancellationToken);
 

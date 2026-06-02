@@ -11,7 +11,7 @@ public record EventoDetalleDto(
     int CapacidadTotal,
     int IdTipoEvento,
     string TipoEvento,
-    IReadOnlyCollection<ImagenEventoDto> Imagenes,
+    string RutaUrl,
     int AsientosDisponibles,
     int AsientosReservados,
     int AsientosVendidos,

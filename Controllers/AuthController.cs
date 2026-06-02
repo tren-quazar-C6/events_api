@@ -60,10 +60,10 @@ public class AuthController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         // Buscar staff por email incluyendo su rol
-        var staff = await _db.STAFF
+        var staff = await _db.Staff
             .AsNoTracking()
-            .Include(s => s.id_rol_staffNavigation)
-            .FirstOrDefaultAsync(s => s.email == request.email && s.activo == true,
+            .Include(s => s.IdRolStaffNavigation)
+            .FirstOrDefaultAsync(s => s.Email == request.email && s.Activo == true,
                 cancellationToken);
 
         // Email no existe o staff inactivo
@@ -73,21 +73,21 @@ public class AuthController : ControllerBase
 
         // Verificar password
         var passwordHash = HashPassword(request.password);
-        if (staff.password_hash != passwordHash)
+        if (staff.PasswordHash != passwordHash)
             return Unauthorized(ServiceResponse<LoginResponse>
                 .Fail("Credenciales inválidas"));
 
         // Generar JWT
-        var (token, expira) = GenerarToken(staff.id_staff, staff.nombre, staff.email,
-            staff.id_rol_staffNavigation.nombre_rol);
+        var (token, expira) = GenerarToken(staff.IdStaff, staff.Nombre, staff.Email,
+            staff.IdRolStaffNavigation.NombreRol);
 
         var response = new LoginResponse(
             token,
             expira,
-            staff.id_staff,
-            staff.nombre,
-            staff.email,
-            staff.id_rol_staffNavigation.nombre_rol
+            staff.IdStaff,
+            staff.Nombre,
+            staff.Email,
+            staff.IdRolStaffNavigation.NombreRol
         );
 
         return Ok(ServiceResponse<LoginResponse>.Ok(response));
