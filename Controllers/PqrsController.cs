@@ -1,16 +1,25 @@
-﻿using events_api.Data;
+using events_api.Data;
 using events_api.DTOs;
 using events_api.Entities;
 using events_api.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace events_api.Controllers.Admin;
+namespace events_api.Controllers;
 
 [ApiController]
-[Route("api/admin/pqrs")]
-public class AdminPqrsController : ControllerBase
+[Route("api/pqrs")]
+public class PqrsController : ControllerBase
 {
+    private static readonly HashSet<string> AllowedTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "PREGUNTA",
+        "PETICION",
+        "QUEJA",
+        "RECLAMO",
+        "SUGERENCIA",
+    };
+
     private static readonly HashSet<string> AllowedStates = new(StringComparer.OrdinalIgnoreCase)
     {
         "ABIERTO",
@@ -21,7 +30,7 @@ public class AdminPqrsController : ControllerBase
 
     private readonly QuasarDbContext _db;
 
-    public AdminPqrsController(QuasarDbContext db)
+    public PqrsController(QuasarDbContext db)
     {
         _db = db;
     }
@@ -30,6 +39,7 @@ public class AdminPqrsController : ControllerBase
     public async Task<ActionResult<ServiceResponse<IReadOnlyCollection<PqrsResumenDto>>>> GetPqrs(
         [FromQuery] string? estado,
         [FromQuery] string? tipo,
+        [FromQuery] int? id_usuario,
         CancellationToken cancellationToken = default)
     {
         var query = _db.PQRs
@@ -44,6 +54,9 @@ public class AdminPqrsController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(tipo))
             query = query.Where(p => p.tipo == NormalizeType(tipo));
+
+        if (id_usuario is not null)
+            query = query.Where(p => p.id_usuario == id_usuario);
 
         var pqrs = await query
             .OrderByDescending(p => p.fecha_creacion)
@@ -76,60 +89,56 @@ public class AdminPqrsController : ControllerBase
             : Ok(ServiceResponse<PqrsDetalleDto>.Ok(dto));
     }
 
-    [HttpPatch("{id:int}")]
-    public async Task<ActionResult<ServiceResponse<PqrsDetalleDto>>> UpdatePqrs(
-        int id,
-        [FromBody] PqrsUpdateRequest request,
+    [HttpPost]
+    public async Task<ActionResult<ServiceResponse<PqrsDetalleDto>>> CreatePqrs(
+        [FromBody] PqrsCreateRequest request,
         CancellationToken cancellationToken = default)
     {
-        var pqr = await _db.PQRs
-            .Include(p => p.PQRS_MENSAJEs)
-            .FirstOrDefaultAsync(p => p.id_pqrs == id, cancellationToken);
+        var usuarioExiste = await _db.USUARIOs
+            .AsNoTracking()
+            .AnyAsync(u => u.id_usuario == request.id_usuario && u.activo == true, cancellationToken);
 
-        if (pqr is null)
-            return NotFound(ServiceResponse<PqrsDetalleDto>.Fail("PQRS no encontrada"));
+        if (!usuarioExiste)
+            return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("El usuario no existe o está inactivo"));
 
-        if (request.asignado_staff is not null)
+        if (!AllowedTypes.Contains(request.tipo))
+            return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("Tipo de PQRS inválido"));
+
+        if (string.IsNullOrWhiteSpace(request.asunto) || request.asunto.Length > 255)
+            return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("El asunto es obligatorio y debe tener máximo 255 caracteres"));
+
+        if (string.IsNullOrWhiteSpace(request.mensaje))
+            return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("El mensaje es obligatorio"));
+
+        var pqr = new PQR
         {
-            var staffExiste = await _db.STAFF
-                .AnyAsync(s => s.id_staff == request.asignado_staff && s.activo == true, cancellationToken);
+            id_usuario = request.id_usuario,
+            tipo = NormalizeType(request.tipo),
+            asunto = request.asunto.Trim(),
+            estado = "ABIERTO",
+            fecha_creacion = DateTime.UtcNow,
+        };
 
-            if (!staffExiste)
-                return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("El staff asignado no existe o está inactivo"));
+        _db.PQRs.Add(pqr);
+        await _db.SaveChangesAsync(cancellationToken);
 
-            pqr.asignado_staff = request.asignado_staff;
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.estado))
+        _db.PQRS_MENSAJEs.Add(new PQRS_MENSAJE
         {
-            if (!AllowedStates.Contains(request.estado))
-                return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("Estado de PQRS inválido"));
-
-            pqr.estado = request.estado.ToUpperInvariant();
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.mensaje))
-        {
-            var remitenteStaff = request.id_staff ?? request.asignado_staff;
-
-            if (remitenteStaff is null)
-                return BadRequest(ServiceResponse<PqrsDetalleDto>.Fail("Se requiere id_staff para registrar la respuesta"));
-
-            pqr.fecha_ultima_respuesta = DateTime.UtcNow;
-            pqr.PQRS_MENSAJEs.Add(new PQRS_MENSAJE
-            {
-                id_pqrs = pqr.id_pqrs,
-                remitente = "STAFF",
-                id_remitente = remitenteStaff.Value,
-                mensaje = request.mensaje.Trim(),
-                fecha = DateTime.UtcNow,
-            });
-        }
+            id_pqrs = pqr.id_pqrs,
+            remitente = "USUARIO",
+            id_remitente = request.id_usuario,
+            mensaje = request.mensaje.Trim(),
+            fecha = DateTime.UtcNow,
+        });
 
         await _db.SaveChangesAsync(cancellationToken);
 
         var dto = await BuildDetalleDtoAsync(pqr.id_pqrs, cancellationToken);
-        return Ok(ServiceResponse<PqrsDetalleDto>.Ok(dto!));
+
+        return CreatedAtAction(
+            nameof(GetPqrs),
+            new { id = pqr.id_pqrs },
+            ServiceResponse<PqrsDetalleDto>.Ok(dto!));
     }
 
     private static string NormalizeType(string tipo)

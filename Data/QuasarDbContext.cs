@@ -24,6 +24,8 @@ public partial class QuasarDbContext : DbContext
 
     public virtual DbSet<EVENTO_ZONA> EVENTO_ZONAs { get; set; }
 
+    public virtual DbSet<EMPLOYEE_ROLE> EMPLOYEE_ROLEs { get; set; }
+
     public virtual DbSet<FAVORITO> FAVORITOs { get; set; }
 
     public virtual DbSet<IMAGENE> IMAGENEs { get; set; }
@@ -34,7 +36,13 @@ public partial class QuasarDbContext : DbContext
 
     public virtual DbSet<PQRS_MENSAJE> PQRS_MENSAJEs { get; set; }
 
+    public virtual DbSet<PERMISSION> PERMISSIONs { get; set; }
+
     public virtual DbSet<ROL_STAFF> ROL_STAFFs { get; set; }
+
+    public virtual DbSet<ROLE_PERMISSION> ROLE_PERMISSIONs { get; set; }
+
+    public virtual DbSet<SALE_DETAIL> SALE_DETAILs { get; set; }
 
     public virtual DbSet<SCAN> SCANs { get; set; }
 
@@ -209,6 +217,24 @@ public partial class QuasarDbContext : DbContext
                 .HasConstraintName("EVENTO_ZONA_ibfk_2");
         });
 
+        modelBuilder.Entity<EMPLOYEE_ROLE>(entity =>
+        {
+            entity.HasKey(e => e.id_employee_role).HasName("PRIMARY");
+            entity.ToTable("EMPLOYEE_ROLES");
+            entity.HasIndex(e => new { e.id_staff, e.id_rol_staff }, "uq_employee_role").IsUnique();
+            entity.Property(e => e.active).HasDefaultValueSql("'1'");
+
+            entity.HasOne(d => d.id_staffNavigation).WithMany()
+                .HasForeignKey(d => d.id_staff)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("EMPLOYEE_ROLES_ibfk_1");
+
+            entity.HasOne(d => d.id_rol_staffNavigation).WithMany()
+                .HasForeignKey(d => d.id_rol_staff)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("EMPLOYEE_ROLES_ibfk_2");
+        });
+
         modelBuilder.Entity<FAVORITO>(entity =>
         {
             entity.HasKey(e => e.id_favorito).HasName("PRIMARY");
@@ -335,6 +361,16 @@ public partial class QuasarDbContext : DbContext
                 .HasConstraintName("PQRS_MENSAJE_ibfk_1");
         });
 
+        modelBuilder.Entity<PERMISSION>(entity =>
+        {
+            entity.HasKey(e => e.id_permission).HasName("PRIMARY");
+            entity.ToTable("PERMISSIONS");
+            entity.HasIndex(e => e.code, "code").IsUnique();
+            entity.Property(e => e.active).HasDefaultValueSql("'1'");
+            entity.Property(e => e.code).HasMaxLength(100);
+            entity.Property(e => e.name).HasMaxLength(150);
+        });
+
         modelBuilder.Entity<ROL_STAFF>(entity =>
         {
             entity.HasKey(e => e.id_rol_staff).HasName("PRIMARY");
@@ -345,6 +381,46 @@ public partial class QuasarDbContext : DbContext
 
             entity.Property(e => e.activo).HasDefaultValueSql("'1'");
             entity.Property(e => e.nombre_rol).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<ROLE_PERMISSION>(entity =>
+        {
+            entity.HasKey(e => e.id_role_permission).HasName("PRIMARY");
+            entity.ToTable("ROLE_PERMISSIONS");
+            entity.HasIndex(e => new { e.id_rol_staff, e.id_permission }, "uq_role_permission").IsUnique();
+            entity.Property(e => e.active).HasDefaultValueSql("'1'");
+
+            entity.HasOne(d => d.id_rol_staffNavigation).WithMany()
+                .HasForeignKey(d => d.id_rol_staff)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("ROLE_PERMISSIONS_ibfk_1");
+
+            entity.HasOne(d => d.id_permissionNavigation).WithMany(p => p.ROLE_PERMISSIONs)
+                .HasForeignKey(d => d.id_permission)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("ROLE_PERMISSIONS_ibfk_2");
+        });
+
+        modelBuilder.Entity<SALE_DETAIL>(entity =>
+        {
+            entity.HasKey(e => e.id_sale_detail).HasName("PRIMARY");
+            entity.ToTable("SALE_DETAILS");
+            entity.HasIndex(e => e.id_venta, "id_venta");
+            entity.HasIndex(e => e.id_evento_asiento, "id_evento_asiento");
+            entity.HasIndex(e => new { e.id_venta, e.id_evento_asiento }, "uq_sale_detail").IsUnique();
+            entity.Property(e => e.unit_price).HasPrecision(10, 2);
+            entity.Property(e => e.subtotal).HasPrecision(10, 2);
+            entity.Property(e => e.quantity).HasDefaultValue(1);
+
+            entity.HasOne(d => d.id_ventaNavigation).WithMany()
+                .HasForeignKey(d => d.id_venta)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("SALE_DETAILS_ibfk_1");
+
+            entity.HasOne(d => d.id_evento_asientoNavigation).WithMany()
+                .HasForeignKey(d => d.id_evento_asiento)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("SALE_DETAILS_ibfk_2");
         });
 
         modelBuilder.Entity<SCAN>(entity =>
