@@ -126,7 +126,7 @@ public class AdminEventosController : ControllerBase
             fecha_fin_ventas    = request.fecha_fin_ventas,
             capacidad_total     = request.capacidad_total,
             ruta_url            = request.ruta_url,
-            publicado           = false,
+            publicado           = true,
             activo              = true,
             fecha_creacion      = DateTime.UtcNow
         };
