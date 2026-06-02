@@ -1,6 +1,11 @@
 using events_api.Data;
+using events_api.Security;
 using events_api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +15,30 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<MetricsService>();
 builder.Services.AddScoped<ScanValidationService>();
+builder.Services.AddScoped<EmployeeAuthService>();
+builder.Services.AddScoped<SalesService>();
+
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var jwtSecret = jwtSection["Secret"] ?? throw new InvalidOperationException("Missing Jwt:Secret in appsettings.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSection["Issuer"],
+            ValidAudience = jwtSection["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        };
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 builder.Services.AddCors(options =>
 {
@@ -54,6 +83,8 @@ app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.UseHttpsRedirection();
 app.UseCors("EventsUsers");
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

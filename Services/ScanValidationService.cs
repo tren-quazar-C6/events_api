@@ -2,12 +2,13 @@ using events_api.Data;
 using events_api.DTOs;
 using events_api.Entities;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 namespace events_api.Services;
 
 public class ScanValidationService
 {
-    private static readonly string[] InactiveTicketStates = ["CANCELADO", "ANULADO", "INACTIVO"];
+    private static readonly string[] AllowedTicketStates = ["ACTIVO"];
 
     private readonly QuasarDbContext _db;
 
@@ -50,11 +51,12 @@ public class ScanValidationService
             return new ScanTicketResponse("INVALIDO", "QR inexistente.", null, null, "QR_INEXISTENTE");
         }
 
-        if (InactiveTicketStates.Contains(ticket.id_estado_ticketNavigation.nombre_estado.ToUpperInvariant()))
+        var ticketState = ticket.id_estado_ticketNavigation.nombre_estado.ToUpperInvariant();
+        if (!AllowedTicketStates.Contains(ticketState))
         {
-            var scanId = await SaveScanAsync(ticket.id_ticket, request.id_empleado, "INVALIDO", "Ticket cancelado o inactivo.", request.dispositivo, scanTime, cancellationToken);
-            await CreateAlertAsync("TICKET_CANCELADO", "Scan de ticket cancelado/inactivo.", request.qr_token, request.id_empleado, request.dispositivo, ticket.id_ticket, scanId, cancellationToken);
-            return new ScanTicketResponse("INVALIDO", "Ticket cancelado o inactivo.", ticket.id_ticket, scanId, "TICKET_CANCELADO");
+            var scanId = await SaveScanAsync(ticket.id_ticket, request.id_empleado, "INVALIDO", $"Ticket con estado {ticketState}.", request.dispositivo, scanTime, cancellationToken);
+            await CreateAlertAsync("TICKET_ESTADO_INVALIDO", $"Scan de ticket con estado {ticketState}.", request.qr_token, request.id_empleado, request.dispositivo, ticket.id_ticket, scanId, cancellationToken);
+            return new ScanTicketResponse("INVALIDO", $"Ticket no está activo. Estado: {ticketState}.", ticket.id_ticket, scanId, "TICKET_ESTADO_INVALIDO");
         }
 
         if (request.id_evento is not null && ticket.id_evento_asientoNavigation.id_evento != request.id_evento)
@@ -87,8 +89,34 @@ public class ScanValidationService
             return new ScanTicketResponse("DUPLICADO", "Ticket ya fue usado.", ticket.id_ticket, scanId, "QR_DUPLICADO");
         }
 
-        var validScanId = await SaveScanAsync(ticket.id_ticket, request.id_empleado, "VALIDO", "Acceso autorizado.", request.dispositivo, scanTime, cancellationToken);
+        int validScanId;
+
+        try
+        {
+            validScanId = await SaveScanAsync(ticket.id_ticket, request.id_empleado, "VALIDO", "Acceso autorizado.", request.dispositivo, scanTime, cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsDuplicateValidScan(exception))
+        {
+            foreach (var entry in _db.ChangeTracker.Entries<SCAN>()
+                .Where(entry => entry.State == EntityState.Added
+                    && entry.Entity.id_ticket == ticket.id_ticket
+                    && entry.Entity.resultado == "VALIDO"))
+            {
+                entry.State = EntityState.Detached;
+            }
+
+            var duplicateScanId = await SaveScanAsync(ticket.id_ticket, request.id_empleado, "DUPLICADO", "Intento de reutilización de ticket.", request.dispositivo, scanTime, cancellationToken);
+            await CreateAlertAsync("QR_DUPLICADO", "Ticket ya escaneado previamente.", request.qr_token, request.id_empleado, request.dispositivo, ticket.id_ticket, duplicateScanId, cancellationToken);
+            return new ScanTicketResponse("DUPLICADO", "Ticket ya fue usado.", ticket.id_ticket, duplicateScanId, "QR_DUPLICADO");
+        }
+
         return new ScanTicketResponse("VALIDO", "Ticket válido.", ticket.id_ticket, validScanId, null);
+    }
+
+    private static bool IsDuplicateValidScan(DbUpdateException exception)
+    {
+        return exception.InnerException is MySqlException { Number: 1062 }
+            && exception.InnerException.Message.Contains("uq_scan_ticket_valido", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<int> SaveScanAsync(
