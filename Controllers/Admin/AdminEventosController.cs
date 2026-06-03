@@ -60,7 +60,7 @@ public class AdminEventosController : ControllerBase
                 e.CapacidadTotal,
                 e.IdTipoEventoNavigation.NombreTipo,
                 e.RutaUrl,
-                e.FechaCreacion != null ? "CANCELLED" :
+                e.FechaCancelacion != null ? "CANCELLED" : 
                 e.Publicado == true ? "PUBLISHED" : "DRAFT",
                 e.EventoZonas.Count(ez => ez.Activo == true)))
             .ToListAsync(cancellationToken);
