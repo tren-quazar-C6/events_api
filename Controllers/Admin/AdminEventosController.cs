@@ -389,6 +389,97 @@ public class AdminEventosController : ControllerBase
         return Ok(ServiceResponse<object>.Ok("Precios actualizados correctamente"));
     }
 
+    // POST /api/admin/eventos/{id}/asientos/generar
+    [HttpPost("{id:int}/asientos/generar")]
+    public async Task<ActionResult<ServiceResponse<object>>> GenerateEventSeats(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var evento = await _db.Eventos
+            .Include(e => e.EventoZonas)
+                .ThenInclude(ez => ez.IdZonaNavigation)
+            .Include(e => e.EventoAsientos)
+            .FirstOrDefaultAsync(e => e.IdEvento == id && e.Activo == true, cancellationToken);
+
+        if (evento is null)
+            return NotFound(ServiceResponse<object>.Fail("Evento no encontrado"));
+
+        if (evento.FechaCancelacion is not null)
+            return BadRequest(ServiceResponse<object>.Fail("No se pueden generar butacas para un evento cancelado"));
+
+        if (evento.EventoAsientos.Any())
+            return BadRequest(ServiceResponse<object>.Fail("Este evento ya tiene butacas generadas"));
+
+        var zonasActivas = evento.EventoZonas
+            .Where(ez => ez.Activo == true)
+            .ToList();
+
+        if (!zonasActivas.Any())
+            return BadRequest(ServiceResponse<object>.Fail("El evento no tiene zonas activas configuradas"));
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var asientosGenerados = 0;
+
+            foreach (var eventoZona in zonasActivas)
+            {
+                var asientosZona = await _db.Asientos
+                    .AsNoTracking()
+                    .Where(a => a.IdZona == eventoZona.IdZona && a.Activo == true)
+                    .OrderBy(a => a.Fila)
+                    .ThenBy(a => a.Numero)
+                    .ThenBy(a => a.IdAsiento)
+                    .Take(eventoZona.Capacidad)
+                    .ToListAsync(cancellationToken);
+
+                if (asientosZona.Count < eventoZona.Capacidad)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return BadRequest(ServiceResponse<object>.Fail(
+                        $"La zona {eventoZona.IdZonaNavigation.NombreZona} no tiene suficientes asientos activos para su capacidad configurada"));
+                }
+
+                foreach (var asiento in asientosZona)
+                {
+                    _db.EventoAsientos.Add(new EventoAsiento
+                    {
+                        IdEvento = evento.IdEvento,
+                        IdAsiento = asiento.IdAsiento,
+                        Estado = "DISPONIBLE"
+                    });
+                    asientosGenerados++;
+                }
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            await RegistrarAuditoriaAsync(
+                id_staff: evento.CreadoPorStaff,
+                accion: "GENERATE_SEATS",
+                tabla: "EVENTOS",
+                id_registro: evento.IdEvento,
+                detalle: new
+                {
+                    evento.IdEvento,
+                    asientos_generados = asientosGenerados
+                },
+                cancellationToken);
+
+            return Ok(ServiceResponse<object>.Ok(new
+            {
+                id_evento = evento.IdEvento,
+                asientos_generados = asientosGenerados
+            }, "Butacas generadas correctamente"));
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     // PUT /api/admin/eventos/{id}/zonas
     [HttpPut("{id:int}/zonas")]
     public async Task<ActionResult<ServiceResponse<AdminEventoDetalleDto>>> UpdateEventZones(
@@ -524,6 +615,7 @@ public class AdminEventosController : ControllerBase
                         ez.Capacidad,
                         ez.Activo ?? true))
                     .ToList(),
+                e.EventoAsientos.Count(),
                 e.EventoAsientos.Count(ea => ea.Estado == "DISPONIBLE"),
                 e.EventoAsientos.Count(ea => ea.Estado == "RESERVADO"),
                 e.EventoAsientos.Count(ea => ea.Estado == "VENDIDO")))

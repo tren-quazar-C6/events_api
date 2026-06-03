@@ -16,6 +16,7 @@ public record AdminEventoDetalleDto(
     string? motivo_cancelacion,
     string ruta_url,
     IReadOnlyCollection<EventoZonaDto> zonas,
+    int asientos_generados,
     int asientos_disponibles,
     int asientos_reservados,
     int asientos_vendidos
