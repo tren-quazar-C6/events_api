@@ -389,6 +389,104 @@ public class AdminEventosController : ControllerBase
         return Ok(ServiceResponse<object>.Ok("Precios actualizados correctamente"));
     }
 
+    // PUT /api/admin/eventos/{id}/zonas
+    [HttpPut("{id:int}/zonas")]
+    public async Task<ActionResult<ServiceResponse<AdminEventoDetalleDto>>> UpdateEventZones(
+        int id,
+        [FromBody] UpdateEventoZonasRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var evento = await _db.Eventos
+            .Include(e => e.EventoZonas)
+            .Include(e => e.EventoAsientos)
+            .FirstOrDefaultAsync(e => e.IdEvento == id && e.Activo == true, cancellationToken);
+
+        if (evento is null)
+            return NotFound(ServiceResponse<AdminEventoDetalleDto>.Fail("Evento no encontrado"));
+
+        if (evento.FechaCancelacion is not null)
+            return BadRequest(ServiceResponse<AdminEventoDetalleDto>.Fail("No se pueden modificar las zonas de un evento cancelado"));
+
+        if (evento.EventoAsientos.Any())
+            return BadRequest(ServiceResponse<AdminEventoDetalleDto>.Fail(
+                "No se pueden modificar las zonas cuando el evento ya tiene asientos generados"));
+
+        var zonasDuplicadas = request.zonas
+            .GroupBy(z => z.id_zona)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        if (zonasDuplicadas.Any())
+        {
+            return BadRequest(ServiceResponse<AdminEventoDetalleDto>.Fail(
+                $"No se permiten zonas duplicadas: {string.Join(", ", zonasDuplicadas)}"));
+        }
+
+        var capacidadSolicitada = request.zonas.Sum(z => z.capacidad);
+        if (capacidadSolicitada > evento.CapacidadTotal)
+        {
+            return BadRequest(ServiceResponse<AdminEventoDetalleDto>.Fail(
+                $"La suma de capacidades por zona ({capacidadSolicitada}) excede la capacidad total del evento ({evento.CapacidadTotal})"));
+        }
+
+        var idZonas = request.zonas.Select(z => z.id_zona).ToList();
+        var zonasActivas = await _db.Zonas
+            .Where(z => idZonas.Contains(z.IdZona) && z.Activo == true)
+            .Select(z => z.IdZona)
+            .ToListAsync(cancellationToken);
+
+        var zonasNoEncontradas = idZonas.Except(zonasActivas).ToList();
+        if (zonasNoEncontradas.Any())
+        {
+            return BadRequest(ServiceResponse<AdminEventoDetalleDto>.Fail(
+                $"Zonas no encontradas o inactivas: {string.Join(", ", zonasNoEncontradas)}"));
+        }
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            _db.EventoZonas.RemoveRange(evento.EventoZonas);
+
+            foreach (var zonaReq in request.zonas)
+            {
+                evento.EventoZonas.Add(new EventoZona
+                {
+                    IdEvento = evento.IdEvento,
+                    IdZona = zonaReq.id_zona,
+                    Precio = zonaReq.precio,
+                    CargoServicio = zonaReq.cargo_servicio,
+                    Capacidad = zonaReq.capacidad,
+                    Activo = true
+                });
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+
+        await RegistrarAuditoriaAsync(
+            id_staff: evento.CreadoPorStaff,
+            accion: "UPDATE_ZONAS",
+            tabla: "EVENTOS",
+            id_registro: evento.IdEvento,
+            detalle: new
+            {
+                capacidad_total = evento.CapacidadTotal,
+                capacidad_asignada = capacidadSolicitada,
+                zonas = request.zonas
+            },
+            cancellationToken);
+
+        var dto = await BuildDetalleDtoAsync(evento.IdEvento, cancellationToken);
+        return Ok(ServiceResponse<AdminEventoDetalleDto>.Ok(dto!, "Zonas actualizadas correctamente"));
+    }
+
     // ── Métodos privados ──────────────────────────────────────────
 
     private async Task<AdminEventoDetalleDto?> BuildDetalleDtoAsync(

@@ -62,6 +62,19 @@ public record UpdatePricingRequest(
     IReadOnlyCollection<ZonaPrecioRequest> zonas
 );
 
+public record UpdateEventoZonasRequest(
+    [Required]
+    [MinLength(1, ErrorMessage = "Debe enviar al menos una zona")]
+    IReadOnlyCollection<UpdateEventoZonaRequest> zonas
+);
+
+public record UpdateEventoZonaRequest(
+    [Required] int id_zona,
+    [Range(0, 10_000_000)] decimal precio,
+    [Range(0, 10_000_000)] decimal? cargo_servicio,
+    [Range(1, 100_000)] int capacidad
+);
+
 public record ZonaPrecioRequest(
     [Required] int id_zona,
     [Range(0, 10_000_000)] decimal nuevo_precio,
