@@ -139,10 +139,11 @@ public class AdminEventosController : ControllerBase
 
             var zonasExistentes = await _db.Zonas
                 .Where(z => id_zonas.Contains(z.IdZona) && z.Activo == true)
-                .Select(z => z.IdZona)
+                .Select(z => new { z.IdZona, z.NombreZona })
                 .ToListAsync(cancellationToken);
 
-            var zonasNoEncontradas = id_zonas.Except(zonasExistentes).ToList();
+            var zonasEncontradasIds = zonasExistentes.Select(z => z.IdZona).ToList();
+            var zonasNoEncontradas = id_zonas.Except(zonasEncontradasIds).ToList();
             if (zonasNoEncontradas.Any())
                 return BadRequest(ServiceResponse<AdminEventoDetalleDto>
                     .Fail($"Zonas no encontradas: {string.Join(", ", zonasNoEncontradas)}"));
@@ -152,20 +153,32 @@ public class AdminEventosController : ControllerBase
                 .GroupBy(a => a.IdZona)
                 .ToDictionaryAsync(g => g.Key, g => g.ToList(), cancellationToken);
 
+            var capacidadFisicaPorZona = await _db.Asientos
+                .Where(a => id_zonas.Contains(a.IdZona) && a.Activo == true)
+                .GroupBy(a => a.IdZona)
+                .Select(g => new { IdZona = g.Key, Capacidad = g.Count() })
+                .ToDictionaryAsync(g => g.IdZona, g => g.Capacidad, cancellationToken);
+
             foreach (var zonaReq in request.zonas)
             {
+                if (!capacidadFisicaPorZona.TryGetValue(zonaReq.id_zona, out var capacidadFisica) || capacidadFisica <= 0)
+                {
+                    return BadRequest(ServiceResponse<AdminEventoDetalleDto>
+                        .Fail($"La zona {zonaReq.id_zona} no tiene asientos activos disponibles"));
+                }
+
                 evento.EventoZonas.Add(new EventoZona
                 {
                     IdZona        = zonaReq.id_zona,
                     Precio         = zonaReq.precio,
                     CargoServicio = zonaReq.cargo_servicio,
-                    Capacidad      = zonaReq.capacidad,
+                    Capacidad      = capacidadFisica,
                     Activo         = true
                 });
 
                 if (asientosPorZona.TryGetValue(zonaReq.id_zona, out var asientos))
                 {
-                    foreach (var asiento in asientos.Take(zonaReq.capacidad))
+                    foreach (var asiento in asientos.Take(capacidadFisica))
                     {
                         evento.EventoAsientos.Add(new EventoAsiento
                         {
@@ -514,14 +527,31 @@ public class AdminEventosController : ControllerBase
                 $"No se permiten zonas duplicadas: {string.Join(", ", zonasDuplicadas)}"));
         }
 
-        var capacidadSolicitada = request.zonas.Sum(z => z.capacidad);
-        if (capacidadSolicitada > evento.CapacidadTotal)
+        var idZonas = request.zonas.Select(z => z.id_zona).ToList();
+        var capacidadFisicaPorZona = await _db.Asientos
+            .Where(a => idZonas.Contains(a.IdZona) && a.Activo == true)
+            .GroupBy(a => a.IdZona)
+            .Select(g => new { IdZona = g.Key, Capacidad = g.Count() })
+            .ToDictionaryAsync(g => g.IdZona, g => g.Capacidad, cancellationToken);
+
+        var capacidadRealSolicitada = 0;
+        foreach (var zonaReq in request.zonas)
         {
-            return BadRequest(ServiceResponse<AdminEventoDetalleDto>.Fail(
-                $"La suma de capacidades por zona ({capacidadSolicitada}) excede la capacidad total del evento ({evento.CapacidadTotal})"));
+            if (!capacidadFisicaPorZona.TryGetValue(zonaReq.id_zona, out var capacidadFisica) || capacidadFisica <= 0)
+            {
+                return BadRequest(ServiceResponse<AdminEventoDetalleDto>.Fail(
+                    $"La zona {zonaReq.id_zona} no tiene asientos activos disponibles"));
+            }
+
+            capacidadRealSolicitada += capacidadFisica;
         }
 
-        var idZonas = request.zonas.Select(z => z.id_zona).ToList();
+        if (capacidadRealSolicitada > evento.CapacidadTotal)
+        {
+            return BadRequest(ServiceResponse<AdminEventoDetalleDto>.Fail(
+                $"La suma de capacidades físicas por zona ({capacidadRealSolicitada}) excede la capacidad total del evento ({evento.CapacidadTotal})"));
+        }
+
         var zonasActivas = await _db.Zonas
             .Where(z => idZonas.Contains(z.IdZona) && z.Activo == true)
             .Select(z => z.IdZona)
@@ -541,13 +571,15 @@ public class AdminEventosController : ControllerBase
 
             foreach (var zonaReq in request.zonas)
             {
+                var capacidadFisica = capacidadFisicaPorZona[zonaReq.id_zona];
+
                 evento.EventoZonas.Add(new EventoZona
                 {
                     IdEvento = evento.IdEvento,
                     IdZona = zonaReq.id_zona,
                     Precio = zonaReq.precio,
                     CargoServicio = zonaReq.cargo_servicio,
-                    Capacidad = zonaReq.capacidad,
+                    Capacidad = capacidadFisica,
                     Activo = true
                 });
             }
@@ -569,7 +601,7 @@ public class AdminEventosController : ControllerBase
             detalle: new
             {
                 capacidad_total = evento.CapacidadTotal,
-                capacidad_asignada = capacidadSolicitada,
+                capacidad_asignada = capacidadRealSolicitada,
                 zonas = request.zonas
             },
             cancellationToken);
